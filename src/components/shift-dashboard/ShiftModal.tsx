@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { Shift } from '../../types/shift';
-import { X, Trash2 } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Shift } from '../../lib/types';
+import { X, Trash2, Save, Calendar } from 'lucide-react';
 
 interface ShiftModalProps {
   isOpen: boolean;
@@ -10,7 +10,7 @@ interface ShiftModalProps {
   onDelete?: (id: string) => void;
 }
 
-export const ShiftModal: React.FC<ShiftModalProps> = ({ isOpen, editingShift, onClose, onSave, onDelete }) => {
+export const ShiftModal = ({ isOpen, editingShift, onClose, onSave, onDelete }: ShiftModalProps) => {
   const [formData, setFormData] = useState<Shift>({
     id: '',
     date: new Date().toISOString().split('T')[0],
@@ -36,71 +36,88 @@ export const ShiftModal: React.FC<ShiftModalProps> = ({ isOpen, editingShift, on
   if (!isOpen) return null;
 
   return (
-    <div style={{ 
-      position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, 
-      background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center',
-      zIndex: 1000, backdropFilter: 'blur(4px)' 
-    }}>
-      <div className="card" style={{ width: '100%', maxWidth: '400px', padding: 'var(--space-lg)', position: 'relative' }}>
-        <button onClick={onClose} style={{ position: 'absolute', top: 'var(--space-md)', right: 'var(--space-md)', color: 'var(--text-muted)' }}>
+    <div className="modal-overlay">
+      <div className="modal-content">
+        <button onClick={onClose} style={{ position: 'absolute', top: 'var(--space-md)', right: 'var(--space-md)', color: 'rgba(245, 245, 240, 0.4)', background: 'none', border: 'none', cursor: 'pointer' }}>
           <X size={24} />
         </button>
 
-        <h2 style={{ marginBottom: 'var(--space-lg)', fontSize: '1.25rem' }}>
-          {editingShift ? 'Editar Turno' : 'Nuevo Turno'}
-        </h2>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-sm)', marginBottom: 'var(--space-xl)' }}>
+          <Calendar className="text-gold" size={24} />
+          <h2 style={{ fontSize: '1.5rem', fontWeight: '800', letterSpacing: '-0.02em' }}>
+            {editingShift ? 'Actualizar Turno' : 'Programar Turno'}
+          </h2>
+        </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-lg)' }}>
           <div>
-            <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '600', marginBottom: 'var(--space-xs)' }}>Fecha</label>
+            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '700', marginBottom: 'var(--space-xs)', textTransform: 'uppercase', color: 'var(--color-accent)' }}>
+              Fecha de Servicio
+            </label>
             <input 
               type="date" 
+              className="modal-input"
               value={formData.date}
               onChange={e => setFormData({...formData, date: e.target.value})}
-              style={{ width: '100%', padding: 'var(--space-sm)', borderRadius: 'var(--radius)', border: '1px solid #cbd5e1' }}
             />
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-md)' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-lg)' }}>
             <div>
-              <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '600', marginBottom: 'var(--space-xs)' }}>Inicio</label>
+              <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '700', marginBottom: 'var(--space-xs)', textTransform: 'uppercase', color: 'var(--color-accent)' }}>
+                Hora Inicio
+              </label>
               <input 
                 type="time" 
+                className="modal-input"
                 value={formData.startTime}
                 onChange={e => setFormData({...formData, startTime: e.target.value})}
-                style={{ width: '100%', padding: 'var(--space-sm)', borderRadius: 'var(--radius)', border: '1px solid #cbd5e1' }}
               />
             </div>
             <div>
-              <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '600', marginBottom: 'var(--space-xs)' }}>Fin</label>
+              <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '700', marginBottom: 'var(--space-xs)', textTransform: 'uppercase', color: 'var(--color-accent)' }}>
+                Hora Fin
+              </label>
               <input 
                 type="time" 
+                className="modal-input"
                 value={formData.endTime}
                 onChange={e => setFormData({...formData, endTime: e.target.value})}
-                style={{ width: '100%', padding: 'var(--space-sm)', borderRadius: 'var(--radius)', border: '1px solid #cbd5e1' }}
               />
             </div>
           </div>
 
           <div>
-            <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '600', marginBottom: 'var(--space-xs)' }}>Ubicación</label>
+            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '700', marginBottom: 'var(--space-xs)', textTransform: 'uppercase', color: 'var(--color-accent)' }}>
+              Ubicación / Proyecto
+            </label>
             <input 
               type="text" 
-              placeholder="Ej: Oficina Central"
+              className="modal-input"
+              placeholder="Ej: Lab Cognitivo 01"
               value={formData.location}
               onChange={e => setFormData({...formData, location: e.target.value})}
-              style={{ width: '100%', padding: 'var(--space-sm)', borderRadius: 'var(--radius)', border: '1px solid #cbd5e1' }}
             />
           </div>
 
-          <div style={{ display: 'flex', gap: 'var(--space-sm)', marginTop: 'var(--space-md)' }}>
-            <button className="btn-primary" style={{ flex: 1 }} onClick={() => onSave(formData)}>
-              Guardar
+          <div style={{ display: 'flex', gap: 'var(--space-md)', marginTop: 'var(--space-md)' }}>
+            <button className="btn-gold" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }} onClick={() => onSave(formData)}>
+              <Save size={18} /> Confirmar
             </button>
             {editingShift && onDelete && (
               <button 
                 onClick={() => onDelete(formData.id)}
-                style={{ padding: 'var(--space-sm)', color: 'var(--danger)', border: '1px solid var(--danger)', borderRadius: 'var(--radius)' }}
+                style={{ 
+                  padding: 'var(--space-sm) var(--space-md)', 
+                  color: 'var(--danger)', 
+                  border: '1px solid rgba(239, 68, 68, 0.3)', 
+                  borderRadius: '12px', 
+                  background: 'rgba(239, 68, 68, 0.1)', 
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}
               >
                 <Trash2 size={20} />
               </button>

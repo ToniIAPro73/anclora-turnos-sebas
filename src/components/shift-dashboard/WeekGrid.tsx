@@ -1,6 +1,5 @@
-import React from 'react';
-import { Shift } from '../../types/shift';
-import { getWeekRange, formatDisplayDate } from '../../lib/date-utils';
+import { Shift } from '../../lib/types';
+import { getWeekDaysISO, fromISODate } from '../../lib/week';
 import { ShiftCard } from './ShiftCard';
 
 interface WeekGridProps {
@@ -9,47 +8,57 @@ interface WeekGridProps {
   onEditShift: (id: string) => void;
 }
 
-export const WeekGrid: React.FC<WeekGridProps> = ({ currentWeekStart, shifts, onEditShift }) => {
-  const days = getWeekRange(currentWeekStart);
+export const WeekGrid = ({ currentWeekStart, shifts, onEditShift }: WeekGridProps) => {
+  const weekDays = getWeekDaysISO(currentWeekStart);
+
+  const formatHeaderDate = (iso: string) => {
+    const d = fromISODate(iso);
+    const weekday = new Intl.DateTimeFormat('es-ES', { weekday: 'long' }).format(d);
+    const daynum = new Intl.DateTimeFormat('es-ES', { day: 'numeric' }).format(d);
+    return { weekday, daynum };
+  };
 
   return (
-    <div style={{ 
-      display: 'grid', 
-      gridTemplateColumns: 'repeat(7, 1fr)', 
-      gap: 'var(--space-sm)',
-      overflowX: 'auto',
-      minWidth: '800px',
-      paddingBottom: 'var(--space-md)'
-    }}>
-      {days.map(day => {
+    <div className="week-grid-container">
+      {weekDays.map(day => {
         const dayShifts = shifts.filter(s => s.date === day);
+        const { weekday, daynum } = formatHeaderDate(day);
         const isToday = day === new Date().toISOString().split('T')[0];
 
         return (
-          <div key={day} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-sm)' }}>
+          <div key={day} className="day-column">
             <div style={{ 
-              textAlign: 'center', 
-              padding: 'var(--space-xs)', 
-              borderRadius: 'var(--radius)', 
-              background: isToday ? 'var(--primary)' : 'transparent',
-              color: isToday ? 'white' : 'var(--text-muted)',
-              fontSize: '0.875rem',
-              fontWeight: isToday ? 'bold' : 'normal'
+              marginBottom: 'var(--space-md)',
+              paddingBottom: 'var(--space-sm)',
+              borderBottom: '1px solid rgba(255,255,255,0.1)',
+              textAlign: 'center'
             }}>
-              {formatDisplayDate(day).split(' ')[0]}
-              <div style={{ fontSize: '1.125rem' }}>{day.split('-')[2]}</div>
+              <div style={{ 
+                fontSize: '0.75rem', 
+                fontWeight: '700', 
+                textTransform: 'uppercase', 
+                letterSpacing: '0.1em',
+                color: isToday ? 'var(--color-gold)' : 'rgba(245, 245, 240, 0.4)'
+              }}>
+                {weekday}
+              </div>
+              <div style={{ 
+                fontSize: '1.5rem', 
+                fontWeight: '800',
+                color: isToday ? 'var(--color-gold)' : 'var(--color-surface)',
+                marginTop: '4px'
+              }}>
+                {daynum}
+              </div>
             </div>
             
-            <div style={{ 
-              flex: 1, 
-              minHeight: '200px', 
-              background: 'rgba(0,0,0,0.02)', 
-              borderRadius: 'var(--radius)', 
-              padding: 'var(--space-xs)',
-              border: '2px dashed #e2e8f0'
-            }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
               {dayShifts.map(shift => (
-                <ShiftCard key={shift.id} shift={shift} onClick={onEditShift} />
+                <ShiftCard 
+                  key={shift.id} 
+                  shift={shift} 
+                  onClick={onEditShift} 
+                />
               ))}
             </div>
           </div>

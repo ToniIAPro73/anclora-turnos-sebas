@@ -1,6 +1,6 @@
-import React, { useMemo } from 'react';
-import { Shift } from '../../types/shift';
-import { getNextShift, calculateWeeklyStats } from '../../lib/shift-logic';
+import { useMemo } from 'react';
+import { Shift } from '../../lib/types';
+import { getNextShift, aggregateWeeklyStats } from '../../lib/shifts';
 import { Clock, Calendar, CheckCircle } from 'lucide-react';
 
 interface StatsBarProps {
@@ -8,35 +8,35 @@ interface StatsBarProps {
   currentWeekShifts: Shift[];
 }
 
-export const StatsBar: React.FC<StatsBarProps> = ({ shifts, currentWeekShifts }) => {
+export const StatsBar = ({ shifts, currentWeekShifts }: StatsBarProps) => {
   const nextShift = useMemo(() => getNextShift(shifts), [shifts]);
-  const stats = useMemo(() => calculateWeeklyStats(currentWeekShifts), [currentWeekShifts]);
+  const stats = useMemo(() => aggregateWeeklyStats(currentWeekShifts), [currentWeekShifts]);
 
   return (
-    <div className="stats-bar" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 'var(--space-md)', marginBottom: 'var(--space-lg)' }}>
-      <div className="card glass">
-        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-sm)', color: 'var(--text-muted)', fontSize: '0.875rem', marginBottom: 'var(--space-xs)' }}>
-          <Clock size={16} /> Próximo Turno
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 'var(--space-lg)', marginBottom: 'var(--space-xl)' }}>
+      <div className="stats-bar-card">
+        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-sm)', color: 'var(--color-gold)', fontSize: '0.875rem', fontWeight: '600', marginBottom: 'var(--space-sm)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+          <Clock size={18} /> Próximo Turno
         </div>
-        <div style={{ fontWeight: '700', fontSize: '1.25rem' }}>
-          {nextShift ? `${nextShift.startTime} - ${nextShift.date}` : 'Sin turnos'}
+        <div style={{ fontWeight: '700', fontSize: '1.5rem', color: 'var(--color-accent)' }}>
+          {nextShift ? `${nextShift.startTime} · ${nextShift.date}` : 'Sin turnos'}
         </div>
       </div>
       
-      <div className="card glass">
-        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-sm)', color: 'var(--text-muted)', fontSize: '0.875rem', marginBottom: 'var(--space-xs)' }}>
-          <Calendar size={16} /> Horas Semanales
+      <div className="stats-bar-card">
+        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-sm)', color: 'var(--color-gold)', fontSize: '0.875rem', fontWeight: '600', marginBottom: 'var(--space-sm)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+          <Calendar size={18} /> Rendimiento Semanal
         </div>
-        <div style={{ fontWeight: '700', fontSize: '1.25rem' }}>
-          {stats.weeklyHours.toFixed(1)} h
+        <div style={{ fontWeight: '700', fontSize: '1.5rem', color: 'var(--color-accent)' }}>
+          {stats.weeklyHours.toFixed(1)} <span style={{ fontSize: '1rem', opacity: 0.7 }}>horas</span>
         </div>
       </div>
 
-      <div className="card glass">
-        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-sm)', color: 'var(--text-muted)', fontSize: '0.875rem', marginBottom: 'var(--space-xs)' }}>
-          <CheckCircle size={16} /> Días Libres
+      <div className="stats-bar-card">
+        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-sm)', color: 'var(--color-gold)', fontSize: '0.875rem', fontWeight: '600', marginBottom: 'var(--space-sm)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+          <CheckCircle size={18} /> Días de Descanso
         </div>
-        <div style={{ fontWeight: '700', fontSize: '1.25rem' }}>
+        <div style={{ fontWeight: '700', fontSize: '1.5rem', color: 'var(--color-accent)' }}>
           {stats.freeDays} {stats.freeDays === 1 ? 'día' : 'días'}
         </div>
       </div>

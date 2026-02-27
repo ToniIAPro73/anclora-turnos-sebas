@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Shift } from './types/shift';
-import { getMonday, formatISO } from './lib/date-utils';
+import { Shift } from './lib/types';
+import { getWeekStartMonday, toISODate } from './lib/week';
 import { loadShifts, saveShifts } from './lib/storage';
 import { StatsBar } from './components/shift-dashboard/StatsBar';
 import { WeekHeader } from './components/shift-dashboard/WeekHeader';
@@ -9,7 +9,7 @@ import { ShiftModal } from './components/shift-dashboard/ShiftModal';
 
 function App() {
   const [shifts, setShifts] = useState<Shift[]>([]);
-  const [currentWeekStart, setCurrentWeekStart] = useState<string>(formatISO(getMonday(new Date())));
+  const [currentWeekStart, setCurrentWeekStart] = useState<string>(toISODate(getWeekStartMonday(new Date())));
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingShiftId, setEditingShiftId] = useState<string | null>(null);
 
@@ -28,7 +28,7 @@ function App() {
     const monday = new Date(currentWeekStart);
     const sunday = new Date(monday);
     sunday.setDate(monday.getDate() + 7);
-    const sundayISO = formatISO(sunday);
+    const sundayISO = toISODate(sunday);
 
     return shifts.filter(s => s.date >= currentWeekStart && s.date < sundayISO);
   }, [shifts, currentWeekStart]);
@@ -37,11 +37,11 @@ function App() {
     shifts.find(s => s.id === editingShiftId) || null
   , [shifts, editingShiftId]);
 
-  const handleSaveShift = (newShift: Shift) => {
+  const handleSaveShift = (shift: Shift) => {
     if (editingShiftId) {
-      setShifts(shifts.map(s => s.id === editingShiftId ? newShift : s));
+      setShifts(shifts.map(s => s.id === shift.id ? shift : s));
     } else {
-      setShifts([...shifts, newShift]);
+      setShifts([...shifts, shift]);
     }
     setIsModalOpen(false);
     setEditingShiftId(null);
@@ -58,31 +58,27 @@ function App() {
     setIsModalOpen(true);
   };
 
-  const handleOpenAdd = () => {
-    setEditingShiftId(null);
-    setIsModalOpen(true);
-  };
-
   return (
-    <div style={{ maxWidth: '1200px', margin: '0 auto', padding: 'var(--space-lg)' }}>
+    <div className="container">
       <WeekHeader 
-        currentWeekStart={currentWeekStart} 
+        currentWeekStart={currentWeekStart}
         onNavigate={setCurrentWeekStart}
-        onAddShift={handleOpenAdd}
+        onAddShift={() => {
+          setEditingShiftId(null);
+          setIsModalOpen(true);
+        }}
       />
-
+      
       <StatsBar 
-        shifts={shifts} 
-        currentWeekShifts={currentWeekShifts} 
+        shifts={shifts}
+        currentWeekShifts={currentWeekShifts}
       />
 
-      <div className="card" style={{ padding: 'var(--space-md)', background: 'var(--surface)' }}>
-        <WeekGrid 
-          currentWeekStart={currentWeekStart} 
-          shifts={shifts} 
-          onEditShift={handleEditShift}
-        />
-      </div>
+      <WeekGrid 
+        currentWeekStart={currentWeekStart}
+        shifts={currentWeekShifts}
+        onEditShift={handleEditShift}
+      />
 
       <ShiftModal 
         isOpen={isModalOpen}

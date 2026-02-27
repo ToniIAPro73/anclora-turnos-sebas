@@ -1,35 +1,28 @@
 :root {
-  --primary: #4f46e5;
-  --primary-hover: #4338ca;
-  --surface: #ffffff;
-  --background: #f8fafc;
-  --text-main: #1e293b;
-  --text-muted: #64748b;
-  
-  /* Semantic Colors */
-  --success: #10b981;
-  --warning: #f59e0b;
-  --danger: #ef4444;
-  --info: #3b82f6;
+  /* Anclora Cognitive Palette */
+  --color-primary: #192350;
+  --color-accent: #AFD2FA;
+  --color-gold: #D4AF37;
+  --color-surface: #F5F5F0;
 
-  /* Shift Categories */
-  --color-morning: #fdf2f8; /* Pinkish */
-  --text-morning: #9d174d;
-  --color-afternoon: #fff7ed; /* Orangish */
-  --text-afternoon: #9a3412;
-  --color-night: #f0f9ff; /* Blueish */
-  --text-night: #075985;
+  --gradient-primary: linear-gradient(135deg, #192350 0%, #1f2e70 100%);
+  --gradient-accent: linear-gradient(135deg, #AFD2FA 0%, #7fb8f5 100%);
+  --gradient-gold: linear-gradient(135deg, #D4AF37 0%, #b9972f 100%);
 
-  /* Spacing */
+  --shadow-soft: 0 10px 30px rgba(25, 35, 80, 0.15);
+  --shadow-hover: 0 15px 40px rgba(25, 35, 80, 0.25);
+
+  --glass-bg: rgba(255, 255, 255, 0.08);
+  --glass-border: rgba(255, 255, 255, 0.2);
+  --glass-blur: blur(16px);
+
+  /* Spacing & Radius */
   --space-xs: 4px;
   --space-sm: 8px;
   --space-md: 16px;
   --space-lg: 24px;
-  --space-xl: 32px;
-
-  --radius: 12px;
-  --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+  --radius-lg: 20px;
+  --radius-md: 18px;
 }
 
 * {
@@ -40,10 +33,16 @@
 
 body {
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
-  background-color: var(--background);
-  color: var(--text-main);
+  background: radial-gradient(
+    circle at top left,
+    rgba(175, 210, 250, 0.2),
+    transparent 40%
+  ),
+  linear-gradient(135deg, #192350 0%, #0f152b 100%);
+  color: var(--color-surface);
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
 }
 
 button {
@@ -51,39 +50,153 @@ button {
   border: none;
   background: none;
   font-family: inherit;
-  transition: all 0.2s ease;
+  transition: all 300ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.card {
-  background: var(--surface);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow);
+button:hover {
+  transform: scale(1.02);
+}
+
+/* Glass Containers (Week Columns) */
+.day-column {
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+  background: var(--glass-bg);
+  border-radius: var(--radius-lg);
   padding: var(--space-md);
+  box-shadow: var(--shadow-soft);
+  min-height: 400px;
+  display: flex;
+  flex-direction: column;
 }
 
-.btn-primary {
-  background-color: var(--primary);
-  color: white;
+/* Stats Bar - Analytical Look */
+.stats-bar-card {
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-lg);
+  box-shadow: var(--shadow-soft);
+  animation: fadeIn 500ms ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Premium Shift Cards */
+.shift-card {
+  background: rgba(15, 21, 43, 0.6);
+  border-radius: var(--radius-md);
+  padding: var(--space-md);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  position: relative;
+  overflow: hidden;
+  transition: all 300ms ease;
+  cursor: pointer;
+}
+
+.shift-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(circle at top right, rgba(255, 255, 255, 0.05), transparent 40%);
+  pointer-events: none;
+}
+
+.shift-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-hover);
+  background: rgba(15, 21, 43, 0.8);
+}
+
+.shift-card.morning {
+  border-left: 4px solid var(--color-accent);
+  box-shadow: 0 0 15px rgba(175, 210, 250, 0.1);
+}
+
+.shift-card.afternoon {
+  border-left: 4px solid var(--color-gold);
+  background: linear-gradient(135deg, rgba(25, 35, 80, 0.6) 0%, rgba(212, 175, 55, 0.05) 100%);
+}
+
+.shift-card.night {
+  background: var(--gradient-primary);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Modal Styling */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(10, 15, 30, 0.7);
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background: var(--gradient-primary);
+  border: 1px solid var(--color-gold);
+  border-radius: var(--radius-lg);
+  width: 100%;
+  max-width: 450px;
+  padding: var(--space-xl);
+  box-shadow: var(--shadow-hover);
+  position: relative;
+}
+
+.modal-input {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 10px;
   padding: var(--space-sm) var(--space-md);
-  border-radius: var(--radius);
-  font-weight: 600;
+  color: var(--color-surface);
+  width: 100%;
+  transition: border-color 200ms ease;
 }
 
-.btn-primary:hover {
-  background-color: var(--primary-hover);
-  transform: translateY(-1px);
+.modal-input:focus {
+  outline: none;
+  border-color: var(--color-accent);
+  box-shadow: 0 0 8px rgba(175, 210, 250, 0.3);
 }
 
-.btn-secondary {
-  border: 2px solid var(--primary);
-  color: var(--primary);
+.btn-gold {
+  background: var(--gradient-gold);
+  color: var(--color-primary);
   padding: var(--space-sm) var(--space-md);
-  border-radius: var(--radius);
-  font-weight: 600;
+  border-radius: 12px;
+  font-weight: 700;
 }
 
-.glass {
-  background: rgba(255, 255, 255, 0.7);
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.3);
+.btn-gold:hover {
+  filter: brightness(1.1);
+  box-shadow: 0 0 15px rgba(212, 175, 55, 0.4);
+}
+
+/* Layout Utilities */
+.container {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: var(--space-xl);
+}
+
+.week-grid-container {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: var(--space-md);
+  overflow-x: auto;
+  padding-bottom: var(--space-md);
 }

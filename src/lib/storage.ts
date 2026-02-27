@@ -1,4 +1,4 @@
-import { Shift } from '../types/shift';
+import { Shift } from './types';
 
 const STORAGE_KEY = 'anclora_shifts_v1';
 

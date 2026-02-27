@@ -1,6 +1,6 @@
-import { Shift } from '../../types/shift';
-import { enrichShift } from '../../lib/shift-logic';
-import { MapPin } from 'lucide-react';
+import { Shift } from '../../lib/types';
+import { enrichShift } from '../../lib/shifts';
+import { MapPin, ArrowRight } from 'lucide-react';
 
 interface ShiftCardProps {
   shift: Shift;
@@ -10,39 +10,54 @@ interface ShiftCardProps {
 export const ShiftCard = ({ shift, onClick }: ShiftCardProps) => {
   const enriched = enrichShift(shift);
   
-  const getCategoryStyles = (cat: string) => {
+  const getCategoryClass = (cat: string) => {
     switch (cat) {
-      case 'Mañana': return { bg: 'var(--color-morning)', text: 'var(--text-morning)' };
-      case 'Tarde': return { bg: 'var(--color-afternoon)', text: 'var(--text-afternoon)' };
-      case 'Noche': return { bg: 'var(--color-night)', text: 'var(--text-night)' };
-      default: return { bg: '#f1f5f9', text: '#475569' };
+      case 'Mañana': return 'morning';
+      case 'Tarde': return 'afternoon';
+      case 'Noche': return 'night';
+      default: return '';
     }
   };
 
-  const styles = getCategoryStyles(enriched.category);
+  const categoryClass = getCategoryClass(enriched.category);
 
   return (
     <div 
-      className="card" 
+      className={`shift-card ${categoryClass}`}
       onClick={() => onClick(shift.id)}
-      style={{ 
-        padding: 'var(--space-sm)', 
-        background: styles.bg, 
-        border: `1px solid ${styles.text}20`,
-        cursor: 'pointer',
-        marginBottom: 'var(--space-xs)'
-      }}
     >
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 'var(--space-xs)' }}>
-        <span style={{ fontWeight: '700', color: styles.text, fontSize: '0.875rem' }}>{enriched.category}</span>
-        <span style={{ fontSize: '0.75rem', color: styles.text, opacity: 0.8 }}>{enriched.duration.toFixed(1)}h</span>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-sm)' }}>
+        <span style={{ 
+          fontSize: '0.7rem', 
+          fontWeight: '800', 
+          textTransform: 'uppercase', 
+          letterSpacing: '0.05em',
+          color: enriched.category === 'Noche' ? '#AFD2FA' : 'var(--color-surface)',
+          opacity: enriched.category === 'Noche' ? 1 : 0.8
+        }}>
+          {enriched.category}
+        </span>
+        <span style={{ fontSize: '0.75rem', fontWeight: 'bold', color: 'var(--color-accent)' }}>
+          {enriched.duration.toFixed(1)}h
+        </span>
       </div>
-      <div style={{ fontSize: '1rem', fontWeight: 'bold', marginBottom: 'var(--space-xs)' }}>
-        {shift.startTime} - {shift.endTime}
+      
+      <div style={{ 
+        fontWeight: '700', 
+        fontSize: '1.1rem', 
+        marginBottom: '6px',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '6px'
+      }}>
+        {shift.startTime} <ArrowRight size={14} style={{ opacity: 0.5 }} /> {shift.endTime}
       </div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-        <MapPin size={12} /> {shift.location || 'S/U'}
-      </div>
+
+      {shift.location && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.75rem', color: 'rgba(245, 245, 240, 0.4)' }}>
+          <MapPin size={12} /> {shift.location}
+        </div>
+      )}
     </div>
   );
 };
