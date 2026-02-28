@@ -1,6 +1,8 @@
-import React, { useState, useRef } from 'react';
-import { X, Upload, FileImage, Loader2, Trash2 } from 'lucide-react';
-import { extractTextBlocksWithPositions, detectMonthYear, processCalendarData, ParsedCalendarShift } from '../../lib/calendar-image-parser';
+import React, { useState, useRef, useEffect } from 'react';
+import { X, Upload, FileImage, Loader2, Trash2, Cpu, Eye } from 'lucide-react';
+import { ParsedCalendarShift } from '../../lib/calendar-image-parser';
+import { checkOllamaAvailable, parseCalendarWithOllama } from '../../lib/ollama-vision-parser';
+import { extractTextBlocksWithPositions, detectMonthYear, processCalendarData } from '../../lib/calendar-image-parser';
 import { Shift } from '../../lib/types';
 
 interface ImportModalProps {
@@ -9,13 +11,27 @@ interface ImportModalProps {
   onConfirmImport: (shifts: Shift[]) => void;
 }
 
+type OcrEngine = 'ollama' | 'tesseract';
+
 export const ImportModal = ({ isOpen, onClose, onConfirmImport }: ImportModalProps) => {
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [parsedShifts, setParsedShifts] = useState<ParsedCalendarShift[]>([]);
+  const [engine, setEngine] = useState<OcrEngine>('ollama');
+  const [ollamaStatus, setOllamaStatus] = useState<{ available: boolean; model: string | null } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Check Ollama on mount
+  useEffect(() => {
+    checkOllamaAvailable().then(status => {
+      setOllamaStatus(status);
+      if (!status.available || !status.model) {
+        setEngine('tesseract');
+      }
+    });
+  }, []);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selected = e.target.files?.[0];
@@ -32,32 +48,37 @@ export const ImportModal = ({ isOpen, onClose, onConfirmImport }: ImportModalPro
     setLoading(true);
     setError(null);
     try {
-      console.log('[ImportModal] Starting OCR for file:', file.name, 'size:', file.size);
-      const ocrResult = await extractTextBlocksWithPositions(file);
-      const { blocks, rawText } = ocrResult;
-      const supplementaryText = (ocrResult as any).supplementaryText as string | undefined;
-      console.log('[ImportModal] OCR complete. Blocks:', blocks.length, 'Text length:', rawText.length);
+      let shifts: ParsedCalendarShift[];
 
-      if (!rawText && blocks.length === 0) {
-        setError('El OCR no pudo extraer texto de la imagen. Intenta con una imagen más nítida.');
-        setLoading(false);
-        return;
+      if (engine === 'ollama' && ollamaStatus?.model) {
+        console.log('[ImportModal] Using Ollama Vision:', ollamaStatus.model);
+        shifts = await parseCalendarWithOllama(file, ollamaStatus.model);
+      } else {
+        console.log('[ImportModal] Using Tesseract.js OCR');
+        const ocrResult = await extractTextBlocksWithPositions(file);
+        const { blocks, rawText } = ocrResult;
+        const supplementaryText = (ocrResult as any).supplementaryText as string | undefined;
+
+        if (!rawText && blocks.length === 0) {
+          setError('El OCR no pudo extraer texto de la imagen.');
+          setLoading(false);
+          return;
+        }
+
+        const { month, year } = detectMonthYear(rawText, blocks);
+        shifts = processCalendarData(blocks, rawText, month, year, supplementaryText);
       }
 
-      const { month, year } = detectMonthYear(rawText, blocks);
-      console.log('[ImportModal] Month:', month, 'Year:', year);
-
-      const shifts = processCalendarData(blocks, rawText, month, year, supplementaryText);
       console.log('[ImportModal] Parsed shifts:', shifts.length);
 
       if (shifts.length === 0) {
-        setError(`OCR completado (${rawText.length} caracteres) pero no se detectaron patrones de turno. Revisa la consola para más detalles.`);
+        setError('No se detectaron turnos. Revisa la consola para más detalles.');
       }
 
       setParsedShifts(shifts);
     } catch (err: any) {
-      console.error('[ImportModal] OCR Error:', err);
-      setError(`Error OCR: ${err?.message || 'Error desconocido'}`);
+      console.error('[ImportModal] Error:', err);
+      setError(`Error: ${err?.message || 'Error desconocido'}`);
     } finally {
       setLoading(false);
     }
@@ -73,16 +94,16 @@ export const ImportModal = ({ isOpen, onClose, onConfirmImport }: ImportModalPro
     setParsedShifts(parsedShifts.filter((_, i) => i !== index));
   };
 
+  const readyShifts = parsedShifts.filter(s => s.startTime !== '??:??' && s.endTime !== '??:??');
+
   const handleConfirm = () => {
-    const finalShifts: Shift[] = parsedShifts
-      .filter(s => s.startTime !== '??:??' && s.endTime !== '??:??')
-      .map(s => ({
-        id: crypto.randomUUID(),
-        date: s.date,
-        startTime: s.startTime,
-        endTime: s.endTime,
-        location: 'Importado (OCR)'
-      }));
+    const finalShifts: Shift[] = readyShifts.map(s => ({
+      id: crypto.randomUUID(),
+      date: s.date,
+      startTime: s.startTime,
+      endTime: s.endTime,
+      location: 'Importado (OCR)'
+    }));
     onConfirmImport(finalShifts);
     onClose();
   };
@@ -96,7 +117,43 @@ export const ImportModal = ({ isOpen, onClose, onConfirmImport }: ImportModalPro
           <X size={24} />
         </button>
 
-        <h2 style={{ fontSize: '1.5rem', fontWeight: '800', marginBottom: '24px' }}>Importador Inteligente</h2>
+        <h2 style={{ fontSize: '1.5rem', fontWeight: '800', marginBottom: '16px' }}>Importador Inteligente</h2>
+
+        {/* Engine selector */}
+        <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
+          <button
+            onClick={() => setEngine('ollama')}
+            disabled={!ollamaStatus?.model}
+            style={{
+              flex: 1, padding: '8px 12px', borderRadius: '10px', border: '1px solid',
+              borderColor: engine === 'ollama' ? 'var(--color-gold)' : 'var(--glass-border)',
+              background: engine === 'ollama' ? 'rgba(212, 175, 55, 0.15)' : 'transparent',
+              color: engine === 'ollama' ? 'var(--color-gold)' : 'rgba(245,245,240,0.5)',
+              cursor: ollamaStatus?.model ? 'pointer' : 'not-allowed',
+              opacity: ollamaStatus?.model ? 1 : 0.4,
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+              fontSize: '0.75rem', fontWeight: '700', textTransform: 'uppercase',
+            }}
+          >
+            <Cpu size={14} />
+            Ollama Vision {ollamaStatus?.model ? '✓' : '(no disponible)'}
+          </button>
+          <button
+            onClick={() => setEngine('tesseract')}
+            style={{
+              flex: 1, padding: '8px 12px', borderRadius: '10px', border: '1px solid',
+              borderColor: engine === 'tesseract' ? 'var(--color-accent)' : 'var(--glass-border)',
+              background: engine === 'tesseract' ? 'rgba(175, 210, 250, 0.15)' : 'transparent',
+              color: engine === 'tesseract' ? 'var(--color-accent)' : 'rgba(245,245,240,0.5)',
+              cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+              fontSize: '0.75rem', fontWeight: '700', textTransform: 'uppercase',
+            }}
+          >
+            <Eye size={14} />
+            Tesseract OCR
+          </button>
+        </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'minmax(300px, 1fr) 1.5fr', gap: '24px', flex: 1, overflow: 'hidden' }}>
           {/* Left: Upload & Image Preview */}
@@ -142,20 +199,20 @@ export const ImportModal = ({ isOpen, onClose, onConfirmImport }: ImportModalPro
             >
               {loading ? (
                 <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
-                  <Loader2 size={18} style={{ animation: 'spin 1s linear infinite' }} /> Analizando...
+                  <Loader2 size={18} style={{ animation: 'spin 1s linear infinite' }} />
+                  {engine === 'ollama' ? 'Analizando con IA...' : 'Analizando...'}
                 </span>
-              ) : 'Escanear Imagen'}
+              ) : `Escanear con ${engine === 'ollama' ? 'Ollama Vision' : 'Tesseract'}`}
             </button>
           </div>
 
-          {/* Right: Detected Data Table (Editable) */}
+          {/* Right: Detected Data Table */}
           <div style={{ display: 'flex', flexDirection: 'column', background: 'rgba(255,255,255,0.03)', borderRadius: '16px', padding: '16px', overflow: 'hidden' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
               <h3 style={{ fontSize: '1rem', fontWeight: '700', color: 'var(--color-accent)' }}>Turnos Detectados</h3>
               <span style={{ fontSize: '0.75rem', opacity: 0.6 }}>{parsedShifts.length} encontrados</span>
             </div>
             
-            {/* Error / Warning display */}
             {error && (
               <div style={{ 
                 background: 'rgba(255, 107, 107, 0.15)', border: '1px solid rgba(255, 107, 107, 0.3)',
@@ -177,30 +234,33 @@ export const ImportModal = ({ isOpen, onClose, onConfirmImport }: ImportModalPro
                     </tr>
                   </thead>
                   <tbody>
-                    {parsedShifts.map((s, i) => (
-                      <tr key={i} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                        <td style={{ padding: '8px' }}>
-                          <input type="text" className="modal-input" value={s.date}
-                            onChange={(e) => handleUpdateShift(i, 'date', e.target.value)}
-                            style={{ padding: '6px', fontSize: '0.8rem' }} />
-                        </td>
-                        <td style={{ padding: '8px' }}>
-                          <input type="text" className="modal-input" value={s.startTime}
-                            onChange={(e) => handleUpdateShift(i, 'startTime', e.target.value)}
-                            style={{ padding: '6px', fontSize: '0.8rem' }} />
-                        </td>
-                        <td style={{ padding: '8px' }}>
-                          <input type="text" className="modal-input" value={s.endTime}
-                            onChange={(e) => handleUpdateShift(i, 'endTime', e.target.value)}
-                            style={{ padding: '6px', fontSize: '0.8rem' }} />
-                        </td>
-                        <td style={{ padding: '8px', textAlign: 'center' }}>
-                          <button onClick={() => handleRemoveShift(i)} style={{ color: '#ff6b6b', padding: '6px' }}>
-                            <Trash2 size={16} />
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
+                    {parsedShifts.map((s, i) => {
+                      const incomplete = s.startTime === '??:??' || s.endTime === '??:??';
+                      return (
+                        <tr key={i} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)', background: incomplete ? 'rgba(255, 107, 107, 0.08)' : 'transparent' }}>
+                          <td style={{ padding: '8px' }}>
+                            <input type="text" className="modal-input" value={s.date}
+                              onChange={(e) => handleUpdateShift(i, 'date', e.target.value)}
+                              style={{ padding: '6px', fontSize: '0.8rem' }} />
+                          </td>
+                          <td style={{ padding: '8px' }}>
+                            <input type="text" className="modal-input" value={s.startTime}
+                              onChange={(e) => handleUpdateShift(i, 'startTime', e.target.value)}
+                              style={{ padding: '6px', fontSize: '0.8rem', color: s.startTime === '??:??' ? '#ff6b6b' : 'inherit' }} />
+                          </td>
+                          <td style={{ padding: '8px' }}>
+                            <input type="text" className="modal-input" value={s.endTime}
+                              onChange={(e) => handleUpdateShift(i, 'endTime', e.target.value)}
+                              style={{ padding: '6px', fontSize: '0.8rem', color: s.endTime === '??:??' ? '#ff6b6b' : 'inherit' }} />
+                          </td>
+                          <td style={{ padding: '8px', textAlign: 'center' }}>
+                            <button onClick={() => handleRemoveShift(i)} style={{ color: '#ff6b6b', padding: '6px' }}>
+                              <Trash2 size={16} />
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               ) : (
@@ -215,10 +275,10 @@ export const ImportModal = ({ isOpen, onClose, onConfirmImport }: ImportModalPro
               <button 
                 className="btn-gold" 
                 style={{ width: '100%', height: '48px', fontSize: '1rem' }} 
-                disabled={parsedShifts.length === 0 || loading}
+                disabled={readyShifts.length === 0 || loading}
                 onClick={handleConfirm}
               >
-                Confirmar Importación ({parsedShifts.filter(s => s.startTime !== '??:??' && s.endTime !== '??:??').length}/{parsedShifts.length} listos)
+                Confirmar Importación ({readyShifts.length}/{parsedShifts.length} listos)
               </button>
             </div>
           </div>
