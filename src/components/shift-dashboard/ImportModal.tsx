@@ -1,7 +1,6 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { X, Upload, FileImage, Loader2, Trash2, Cpu, Eye } from 'lucide-react';
+import React, { useState, useRef } from 'react';
+import { X, Upload, FileImage, Loader2, Trash2 } from 'lucide-react';
 import { ParsedCalendarShift } from '../../lib/calendar-image-parser';
-import { checkOllamaAvailable, parseCalendarWithOllama } from '../../lib/ollama-vision-parser';
 import { extractTextBlocksWithPositions, detectMonthYear, processCalendarData } from '../../lib/calendar-image-parser';
 import { Shift } from '../../lib/types';
 
@@ -11,27 +10,13 @@ interface ImportModalProps {
   onConfirmImport: (shifts: Shift[]) => void;
 }
 
-type OcrEngine = 'ollama' | 'tesseract';
-
 export const ImportModal = ({ isOpen, onClose, onConfirmImport }: ImportModalProps) => {
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [parsedShifts, setParsedShifts] = useState<ParsedCalendarShift[]>([]);
-  const [engine, setEngine] = useState<OcrEngine>('ollama');
-  const [ollamaStatus, setOllamaStatus] = useState<{ available: boolean; model: string | null } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  // Check Ollama on mount
-  useEffect(() => {
-    checkOllamaAvailable().then(status => {
-      setOllamaStatus(status);
-      if (!status.available || !status.model) {
-        setEngine('tesseract');
-      }
-    });
-  }, []);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selected = e.target.files?.[0];
@@ -48,27 +33,17 @@ export const ImportModal = ({ isOpen, onClose, onConfirmImport }: ImportModalPro
     setLoading(true);
     setError(null);
     try {
-      let shifts: ParsedCalendarShift[];
+      console.log('[ImportModal] Starting OCR for file:', file.name);
+      const { blocks, rawText } = await extractTextBlocksWithPositions(file);
 
-      if (engine === 'ollama' && ollamaStatus?.model) {
-        console.log('[ImportModal] Using Ollama Vision:', ollamaStatus.model);
-        shifts = await parseCalendarWithOllama(file, ollamaStatus.model);
-      } else {
-        console.log('[ImportModal] Using Tesseract.js OCR');
-        const ocrResult = await extractTextBlocksWithPositions(file);
-        const { blocks, rawText } = ocrResult;
-        const supplementaryText = (ocrResult as any).supplementaryText as string | undefined;
-
-        if (!rawText && blocks.length === 0) {
-          setError('El OCR no pudo extraer texto de la imagen.');
-          setLoading(false);
-          return;
-        }
-
-        const { month, year } = detectMonthYear(rawText, blocks);
-        shifts = processCalendarData(blocks, rawText, month, year, supplementaryText);
+      if (!rawText && blocks.length === 0) {
+        setError('El OCR no pudo extraer texto de la imagen.');
+        setLoading(false);
+        return;
       }
 
+      const { month, year } = detectMonthYear(rawText, blocks);
+      const shifts = processCalendarData(blocks, rawText, month, year);
       console.log('[ImportModal] Parsed shifts:', shifts.length);
 
       if (shifts.length === 0) {
@@ -119,42 +94,6 @@ export const ImportModal = ({ isOpen, onClose, onConfirmImport }: ImportModalPro
 
         <h2 style={{ fontSize: '1.5rem', fontWeight: '800', marginBottom: '16px' }}>Importador Inteligente</h2>
 
-        {/* Engine selector */}
-        <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
-          <button
-            onClick={() => setEngine('ollama')}
-            disabled={!ollamaStatus?.model}
-            style={{
-              flex: 1, padding: '8px 12px', borderRadius: '10px', border: '1px solid',
-              borderColor: engine === 'ollama' ? 'var(--color-gold)' : 'var(--glass-border)',
-              background: engine === 'ollama' ? 'rgba(212, 175, 55, 0.15)' : 'transparent',
-              color: engine === 'ollama' ? 'var(--color-gold)' : 'rgba(245,245,240,0.5)',
-              cursor: ollamaStatus?.model ? 'pointer' : 'not-allowed',
-              opacity: ollamaStatus?.model ? 1 : 0.4,
-              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
-              fontSize: '0.75rem', fontWeight: '700', textTransform: 'uppercase',
-            }}
-          >
-            <Cpu size={14} />
-            Ollama Vision {ollamaStatus?.model ? '✓' : '(no disponible)'}
-          </button>
-          <button
-            onClick={() => setEngine('tesseract')}
-            style={{
-              flex: 1, padding: '8px 12px', borderRadius: '10px', border: '1px solid',
-              borderColor: engine === 'tesseract' ? 'var(--color-accent)' : 'var(--glass-border)',
-              background: engine === 'tesseract' ? 'rgba(175, 210, 250, 0.15)' : 'transparent',
-              color: engine === 'tesseract' ? 'var(--color-accent)' : 'rgba(245,245,240,0.5)',
-              cursor: 'pointer',
-              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
-              fontSize: '0.75rem', fontWeight: '700', textTransform: 'uppercase',
-            }}
-          >
-            <Eye size={14} />
-            Tesseract OCR
-          </button>
-        </div>
-
         <div style={{ display: 'grid', gridTemplateColumns: 'minmax(300px, 1fr) 1.5fr', gap: '24px', flex: 1, overflow: 'hidden' }}>
           {/* Left: Upload & Image Preview */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', overflow: 'hidden' }}>
@@ -200,9 +139,9 @@ export const ImportModal = ({ isOpen, onClose, onConfirmImport }: ImportModalPro
               {loading ? (
                 <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
                   <Loader2 size={18} style={{ animation: 'spin 1s linear infinite' }} />
-                  {engine === 'ollama' ? 'Analizando con IA...' : 'Analizando...'}
+                  Analizando...
                 </span>
-              ) : `Escanear con ${engine === 'ollama' ? 'Ollama Vision' : 'Tesseract'}`}
+              ) : 'Escanear Imagen'}
             </button>
           </div>
 

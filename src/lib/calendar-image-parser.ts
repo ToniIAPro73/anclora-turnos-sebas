@@ -43,8 +43,11 @@ function loadImageToCanvas(file: File): Promise<HTMLCanvasElement> {
   });
 }
 
-/** Apply contrast enhancement (good for dark text on light bg) */
-function applyContrast(canvas: HTMLCanvasElement): Blob | Promise<Blob> {
+/**
+ * Simple contrast enhancement — gives best results with Tesseract.
+ * Stretches pixel values away from midpoint for sharper text.
+ */
+function applyContrast(canvas: HTMLCanvasElement): Promise<Blob> {
   const ctx = canvas.getContext('2d')!;
   const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
   const data = imageData.data;
@@ -59,53 +62,20 @@ function applyContrast(canvas: HTMLCanvasElement): Blob | Promise<Blob> {
   return new Promise(r => canvas.toBlob(b => r(b!), 'image/png'));
 }
 
-/** Extract GREEN channel only + threshold (captures white text on RED backgrounds) */
-function applyGreenChannel(canvas: HTMLCanvasElement): Promise<Blob> {
-  const ctx = canvas.getContext('2d')!;
-  const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-  const data = imageData.data;
-  for (let i = 0; i < data.length; i += 4) {
-    // Use green channel only — red bg has low G, white text has high G
-    const g = data[i + 1];
-    // Invert so white text on red bg becomes dark text on light bg
-    const val = g > 180 ? 255 : 0;
-    data[i] = val;
-    data[i + 1] = val;
-    data[i + 2] = val;
-  }
-  ctx.putImageData(imageData, 0, 0);
-  return new Promise(r => canvas.toBlob(b => r(b!), 'image/png'));
-}
-
 /**
- * Run OCR with TWO targeted passes:
- * Pass 1: Contrast (dark text on light backgrounds — most of the calendar)
- * Pass 2: Green channel extraction (white text on red/colored backgrounds — night shifts)
- * Then merge lines for maximum coverage.
+ * Single-pass OCR with contrast enhancement.
  */
 export async function extractTextBlocksWithPositions(imageFile: File): Promise<{ blocks: TextBlock[]; rawText: string }> {
   const worker = await createWorker('spa+eng');
 
-  // Pass 1: Contrast enhancement (captures most text)
-  const canvas1 = await loadImageToCanvas(imageFile);
-  const blob1 = await applyContrast(canvas1);
-  const result1 = await worker.recognize(blob1);
-  const text1 = (result1.data as any).text || '';
-  console.log('[OCR Pass 1 - Contrast] Text:\n', text1);
-
-  // Pass 2: Green channel (captures white-on-red text like "17:00" night shifts)
-  const canvas2 = await loadImageToCanvas(imageFile);
-  const blob2 = await applyGreenChannel(canvas2);
-  const result2 = await worker.recognize(blob2);
-  const text2 = (result2.data as any).text || '';
-  console.log('[OCR Pass 2 - Green Channel] Text:\n', text2);
+  const canvas = await loadImageToCanvas(imageFile);
+  const blob = await applyContrast(canvas);
+  const result = await worker.recognize(blob);
+  const text = (result.data as any).text || '';
+  console.log('[OCR] Text:\n', text);
 
   await worker.terminate();
-
-  // Merge: use text1 as primary, text2 as supplementary
-  console.log(`[OCR] Pass 1: ${text1.length} chars, Pass 2: ${text2.length} chars`);
-
-  return { blocks: [], rawText: text1, supplementaryText: text2 } as any;
+  return { blocks: [], rawText: text };
 }
 
 /**
