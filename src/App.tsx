@@ -1,41 +1,48 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Shift } from './lib/types';
-import { getWeekStartMonday, toISODate } from './lib/week';
+import { getMonthDaysISO, getDaysInMonth } from './lib/week';
 import { loadShifts, saveShifts } from './lib/storage';
 import { StatsBar } from './components/shift-dashboard/StatsBar';
-import { WeekHeader } from './components/shift-dashboard/WeekHeader';
-import { WeekGrid } from './components/shift-dashboard/WeekGrid';
+import { MonthHeader } from './components/shift-dashboard/MonthHeader';
+import { MonthGrid } from './components/shift-dashboard/MonthGrid';
 import { ShiftModal } from './components/shift-dashboard/ShiftModal';
+import { ImportModal } from './components/shift-dashboard/ImportModal';
 
 function App() {
   const [shifts, setShifts] = useState<Shift[]>([]);
-  const [currentWeekStart, setCurrentWeekStart] = useState<string>(toISODate(getWeekStartMonday(new Date())));
+  const now = new Date();
+  const [currentYear, setCurrentYear] = useState(now.getFullYear());
+  const [currentMonth, setCurrentMonth] = useState(now.getMonth());
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isImportOpen, setIsImportOpen] = useState(false);
   const [editingShiftId, setEditingShiftId] = useState<string | null>(null);
 
-  // Load shifts on mount
   useEffect(() => {
-    const saved = loadShifts();
-    setShifts(saved);
+    setShifts(loadShifts());
   }, []);
 
-  // Save shifts on change
   useEffect(() => {
     saveShifts(shifts);
   }, [shifts]);
 
-  const currentWeekShifts = useMemo(() => {
-    const monday = new Date(currentWeekStart);
-    const sunday = new Date(monday);
-    sunday.setDate(monday.getDate() + 7);
-    const sundayISO = toISODate(sunday);
+  const monthDays = useMemo(() => getMonthDaysISO(currentYear, currentMonth), [currentYear, currentMonth]);
+  const daysInMonth = useMemo(() => getDaysInMonth(currentYear, currentMonth), [currentYear, currentMonth]);
 
-    return shifts.filter(s => s.date >= currentWeekStart && s.date < sundayISO);
-  }, [shifts, currentWeekStart]);
+  const currentMonthShifts = useMemo(() => {
+    const firstDay = monthDays[0];
+    const lastDay = monthDays[monthDays.length - 1];
+    return shifts.filter(s => s.date >= firstDay && s.date <= lastDay);
+  }, [shifts, monthDays]);
 
-  const editingShift = useMemo(() => 
+  const editingShift = useMemo(() =>
     shifts.find(s => s.id === editingShiftId) || null
   , [shifts, editingShiftId]);
+
+  const handleNavigate = (delta: number) => {
+    const d = new Date(currentYear, currentMonth + delta, 1);
+    setCurrentYear(d.getFullYear());
+    setCurrentMonth(d.getMonth());
+  };
 
   const handleSaveShift = (shift: Shift) => {
     if (editingShiftId) {
@@ -60,32 +67,42 @@ function App() {
 
   return (
     <div className="container">
-      <WeekHeader 
-        currentWeekStart={currentWeekStart}
-        onNavigate={setCurrentWeekStart}
+      <MonthHeader
+        year={currentYear}
+        month={currentMonth}
+        onNavigate={handleNavigate}
         onAddShift={() => {
           setEditingShiftId(null);
           setIsModalOpen(true);
         }}
-      />
-      
-      <StatsBar 
-        shifts={shifts}
-        currentWeekShifts={currentWeekShifts}
+        onImport={() => setIsImportOpen(true)}
       />
 
-      <WeekGrid 
-        currentWeekStart={currentWeekStart}
-        shifts={currentWeekShifts}
+      <StatsBar
+        shifts={shifts}
+        currentMonthShifts={currentMonthShifts}
+        daysInMonth={daysInMonth}
+      />
+
+      <MonthGrid
+        year={currentYear}
+        month={currentMonth}
+        shifts={currentMonthShifts}
         onEditShift={handleEditShift}
       />
 
-      <ShiftModal 
+      <ShiftModal
         isOpen={isModalOpen}
         editingShift={editingShift}
         onClose={() => setIsModalOpen(false)}
         onSave={handleSaveShift}
         onDelete={handleDeleteShift}
+      />
+
+      <ImportModal
+        isOpen={isImportOpen}
+        onClose={() => setIsImportOpen(false)}
+        onConfirmImport={(newShifts) => setShifts([...shifts, ...newShifts])}
       />
     </div>
   );

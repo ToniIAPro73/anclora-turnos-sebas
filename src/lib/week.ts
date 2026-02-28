@@ -54,3 +54,44 @@ export const addWeeks = (isoDate: string, weeks: number): string => {
  * Checks if two ISO date strings are equal.
  */
 export const isSameISODate = (d1: string, d2: string): boolean => d1 === d2;
+
+/**
+ * Returns { year, month } for a given date (month is 0-indexed).
+ */
+export const getYearMonth = (date: Date): { year: number; month: number } => ({
+  year: date.getFullYear(),
+  month: date.getMonth(),
+});
+
+/**
+ * Returns the number of days in a given month.
+ */
+export const getDaysInMonth = (year: number, month: number): number =>
+  new Date(year, month + 1, 0).getDate();
+
+/**
+ * Returns the weekday index (0=Mon, 6=Sun) for the 1st of the month.
+ */
+export const getFirstWeekdayOfMonth = (year: number, month: number): number => {
+  const day = new Date(year, month, 1).getDay();
+  return day === 0 ? 6 : day - 1; // Convert Sunday=0 to Monday-start
+};
+
+/**
+ * Returns all ISO date strings for a month.
+ */
+export const getMonthDaysISO = (year: number, month: number): string[] => {
+  const count = getDaysInMonth(year, month);
+  return Array.from({ length: count }, (_, i) => {
+    const d = new Date(year, month, i + 1);
+    return toISODate(d);
+  });
+};
+
+/**
+ * Navigate months: returns { year, month } offset by `delta` months.
+ */
+export const addMonths = (year: number, month: number, delta: number): { year: number; month: number } => {
+  const d = new Date(year, month + delta, 1);
+  return { year: d.getFullYear(), month: d.getMonth() };
+};

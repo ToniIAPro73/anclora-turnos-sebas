@@ -59,14 +59,14 @@ export const getNextShift = (shifts: Shift[], now: Date = new Date()): Shift | n
 };
 
 /**
- * Aggregates statistics for a set of shifts.
+ * Aggregates statistics for a set of shifts over a given number of days.
  */
-export const aggregateWeeklyStats = (weekShifts: Shift[]): WeeklyStats => {
-  const enriched = weekShifts.map(enrichShift);
+export const aggregateWeeklyStats = (shifts: Shift[], totalDays: number = 7): WeeklyStats => {
+  const enriched = shifts.map(enrichShift);
   const weeklyHours = enriched.reduce((acc, s) => acc + s.duration, 0);
   
-  const busyDays = new Set(weekShifts.map(s => s.date)).size;
-  const freeDays = 7 - busyDays;
+  const busyDays = new Set(shifts.map(s => s.date)).size;
+  const freeDays = totalDays - busyDays;
 
   return { weeklyHours, freeDays };
 };

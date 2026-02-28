@@ -1,14 +1,19 @@
 import { ChevronLeft, ChevronRight, PlusCircle } from 'lucide-react';
-import { addWeeks } from '../../lib/week';
 
-interface WeekHeaderProps {
-  currentWeekStart: string;
-  onNavigate: (newStart: string) => void;
+const MONTH_NAMES = [
+  'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+  'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
+];
+
+interface MonthHeaderProps {
+  year: number;
+  month: number;
+  onNavigate: (delta: number) => void;
   onAddShift: () => void;
   onImport: () => void;
 }
 
-export const WeekHeader = ({ currentWeekStart, onNavigate, onAddShift, onImport }: WeekHeaderProps) => {
+export const MonthHeader = ({ year, month, onNavigate, onAddShift, onImport }: MonthHeaderProps) => {
   return (
     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-lg)' }}>
@@ -18,22 +23,20 @@ export const WeekHeader = ({ currentWeekStart, onNavigate, onAddShift, onImport 
           </h1>
           <p style={{ fontSize: '0.75rem', color: 'rgba(245, 245, 240, 0.4)', marginTop: '2px' }}>Anclora Cognitive Solutions</p>
         </div>
-        
+
         <div style={{ display: 'flex', alignItems: 'center', gap: '4px', background: 'rgba(255,255,255,0.05)', borderRadius: '12px', padding: '4px' }}>
-          <button 
-            className="btn-ghost" 
-            style={{ padding: '6px', color: 'var(--color-accent)' }}
-            onClick={() => onNavigate(addWeeks(currentWeekStart, -1))}
+          <button
+            style={{ padding: '6px', color: 'var(--color-accent)', background: 'none', border: 'none', cursor: 'pointer' }}
+            onClick={() => onNavigate(-1)}
           >
             <ChevronLeft size={20} />
           </button>
-          <div style={{ padding: '0 var(--space-md)', fontWeight: '700', fontSize: '0.875rem', minWidth: '180px', textAlign: 'center' }}>
-            {new Date(currentWeekStart).toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' })}
+          <div style={{ padding: '0 var(--space-md)', fontWeight: '700', fontSize: '0.95rem', minWidth: '180px', textAlign: 'center' }}>
+            {MONTH_NAMES[month]} {year}
           </div>
-          <button 
-            className="btn-ghost" 
-            style={{ padding: '6px', color: 'var(--color-accent)' }}
-            onClick={() => onNavigate(addWeeks(currentWeekStart, 1))}
+          <button
+            style={{ padding: '6px', color: 'var(--color-accent)', background: 'none', border: 'none', cursor: 'pointer' }}
+            onClick={() => onNavigate(1)}
           >
             <ChevronRight size={20} />
           </button>
@@ -41,15 +44,14 @@ export const WeekHeader = ({ currentWeekStart, onNavigate, onAddShift, onImport 
       </div>
 
       <div style={{ display: 'flex', gap: 'var(--space-md)' }}>
-        <button 
-          className="btn-ghost" 
-          onClick={onImport} 
-          style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 16px', border: '1px solid var(--color-accent)', color: 'var(--color-accent)', borderRadius: '10px' }}
+        <button
+          onClick={onImport}
+          style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 16px', border: '1px solid var(--color-accent)', color: 'var(--color-accent)', borderRadius: '10px', background: 'none', cursor: 'pointer', fontSize: '0.875rem', fontWeight: 600 }}
         >
           Importar
         </button>
         <button className="btn-gold" onClick={onAddShift} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 16px' }}>
-          <PlusCircle size={18} /> <span style={{ fontSize: '0.875rem' }}>Añadir Turno</span>
+          <PlusCircle size={18} /> <span style={{ fontSize: '0.875rem' }}>Añadir</span>
         </button>
       </div>
     </div>

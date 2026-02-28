@@ -13,7 +13,7 @@ export const WeekGrid = ({ currentWeekStart, shifts, onEditShift }: WeekGridProp
 
   const formatHeaderDate = (iso: string) => {
     const d = fromISODate(iso);
-    const weekday = new Intl.DateTimeFormat('es-ES', { weekday: 'long' }).format(d);
+    const weekday = new Intl.DateTimeFormat('es-ES', { weekday: 'short' }).format(d);
     const daynum = new Intl.DateTimeFormat('es-ES', { day: 'numeric' }).format(d);
     return { weekday, daynum };
   };
@@ -29,30 +29,31 @@ export const WeekGrid = ({ currentWeekStart, shifts, onEditShift }: WeekGridProp
           <div key={day} className="day-column">
             <div style={{ 
               marginBottom: 'var(--space-md)',
-              paddingBottom: 'var(--space-sm)',
-              borderBottom: '1px solid rgba(255,255,255,0.1)',
-              textAlign: 'center'
+              paddingBottom: 'var(--space-xs)',
+              borderBottom: '1px solid rgba(255,255,255,0.08)',
+              textAlign: 'center',
+              flexShrink: 0
             }}>
               <div style={{ 
-                fontSize: '0.75rem', 
-                fontWeight: '700', 
+                fontSize: '0.65rem', 
+                fontWeight: '800', 
                 textTransform: 'uppercase', 
                 letterSpacing: '0.1em',
-                color: isToday ? 'var(--color-gold)' : 'rgba(245, 245, 240, 0.4)'
+                color: isToday ? 'var(--color-gold)' : 'rgba(245, 245, 240, 0.3)'
               }}>
                 {weekday}
               </div>
               <div style={{ 
-                fontSize: '1.5rem', 
+                fontSize: '1.25rem', 
                 fontWeight: '800',
                 color: isToday ? 'var(--color-gold)' : 'var(--color-surface)',
-                marginTop: '4px'
+                marginTop: '2px'
               }}>
                 {daynum}
               </div>
             </div>
             
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
+            <div className="day-shifts-list">
               {dayShifts.map(shift => (
                 <ShiftCard 
                   key={shift.id} 
