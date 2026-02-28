@@ -139,6 +139,9 @@ export const ImportModal = ({ isOpen, onClose, onConfirmImport }: ImportModalPro
 
         const visionShifts = visionResult.status === 'fulfilled' ? visionResult.value : [];
         const ocrShifts = ocrResult.status === 'fulfilled' ? ocrResult.value : [];
+        const visionError = visionResult.status === 'rejected'
+          ? String(visionResult.reason?.message || visionResult.reason || '')
+          : '';
 
         if (visionResult.status === 'rejected') {
           console.warn('[ImportModal] Vision result rejected, falling back to OCR:', visionResult.reason);
@@ -171,6 +174,10 @@ export const ImportModal = ({ isOpen, onClose, onConfirmImport }: ImportModalPro
         shifts = strongOcrLead
           ? scopedOcrShifts
           : (primary.length > 0 ? mergeParsedShifts(primary, secondary) : secondary);
+
+        if (visionError && shifts === scopedOcrShifts) {
+          setError(`Vision local no disponible: ${visionError}`);
+        }
       } else {
         console.log('[ImportModal] Using Tesseract.js OCR');
         shifts = sanitizeMonthScope(await parseCalendarImageWithTesseract(file));

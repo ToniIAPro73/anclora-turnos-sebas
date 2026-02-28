@@ -9,6 +9,7 @@
 import { ParsedCalendarShift } from './calendar-image-parser';
 
 const OLLAMA_API = 'http://localhost:11434/api/generate';
+const OLLAMA_TIMEOUT_MS = 120000;
 
 interface ExtractedShiftCandidate {
   day: number;
@@ -54,12 +55,12 @@ function normalize24hTime(t: string): string | null {
 
 /** Preferred Qwen vision models for this repo */
 const PREFERRED_VISION_MODELS = [
+  'qwen2-vl:7b',
+  'qwen2-vl:2b',
   'qwen3-vl:8b',
   'qwen3-vl:4b',
   'qwen3-vl',
   'qwen3',
-  'qwen2-vl:7b',
-  'qwen2-vl:2b',
 ];
 
 function isPreferredQwenVisionModel(modelName: string, preferred: string): boolean {
@@ -217,21 +218,35 @@ Reply only in JSON using this schema:
 
   console.log(`[Ollama] Sending image to ${model}...`);
   const startTime = Date.now();
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), OLLAMA_TIMEOUT_MS);
 
-  const response = await fetch(OLLAMA_API, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      model,
-      prompt,
-      images: [base64Image],
-      stream: false,
-      options: {
-        temperature: 0.1,
-        num_predict: 2048,
-      }
-    })
-  });
+  let response: Response;
+  try {
+    response = await fetch(OLLAMA_API, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      signal: controller.signal,
+      body: JSON.stringify({
+        model,
+        prompt,
+        images: [base64Image],
+        stream: false,
+        options: {
+          temperature: 0.1,
+          num_predict: 2048,
+        }
+      })
+    });
+  } catch (error: any) {
+    clearTimeout(timeoutId);
+    if (error?.name === 'AbortError') {
+      throw new Error(`Timeout: ${model} tardo mas de ${(OLLAMA_TIMEOUT_MS / 1000).toFixed(0)}s en responder.`);
+    }
+    throw error;
+  }
+
+  clearTimeout(timeoutId);
 
   const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
 
@@ -242,6 +257,9 @@ Reply only in JSON using this schema:
 
   const result = await response.json();
   const rawResponse = result.response || '';
+  if (!rawResponse.trim()) {
+    throw new Error(`El modelo ${model} devolvio una respuesta vacia (${elapsed}s).`);
+  }
   console.log(`[Ollama] Response in ${elapsed}s:`, rawResponse);
 
   // Pre-sanitize: remove brackets and single quotes that might confuse simple regex
