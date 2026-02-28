@@ -2,14 +2,120 @@
  * Ollama Vision Parser: Uses a local LLM with vision capabilities 
  * to extract shift data from calendar images.
  * 
- * Much more accurate than Tesseract.js for colored text on backgrounds.
- * Requires: ollama running locally with a vision model (llama3.2-vision).
+ * Supports Moondream (fast, lightweight) and Qwen2-VL as alternatives.
+ * Requires: ollama running locally with a vision model.
  */
 
 import { ParsedCalendarShift } from './calendar-image-parser';
 
 const OLLAMA_API = 'http://localhost:11434/api/generate';
-const VISION_MODEL = 'llama3.2-vision:11b';
+
+interface ExtractedShiftCandidate {
+  day: number;
+  start: string;
+  end: string;
+}
+
+/** Convert AM/PM time to 24h format, or pass through HH:MM */
+function to24h(t: string): string {
+  if (!t) return '??:??';
+  const s = t.trim().toUpperCase();
+  const m = s.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/);
+  if (m) {
+    let h = parseInt(m[1]);
+    const min = m[2];
+    if (m[3] === 'PM' && h !== 12) h += 12;
+    if (m[3] === 'AM' && h === 12) h = 0;
+    return `${String(h).padStart(2, '0')}:${min}`;
+  }
+  // Already HH:MM
+  if (/^\d{1,2}:\d{2}$/.test(s)) {
+    const [h, min] = s.split(':');
+    return `${h.padStart(2, '0')}:${min}`;
+  }
+  return t;
+}
+
+function normalize24hTime(t: string): string | null {
+  const value = to24h(t).trim();
+  const match = value.match(/^(\d{1,2}):(\d{2})$/);
+  if (!match) {
+    return null;
+  }
+
+  const hour = Number.parseInt(match[1], 10);
+  const minute = Number.parseInt(match[2], 10);
+  if (hour < 0 || hour > 23 || minute < 0 || minute > 59) {
+    return null;
+  }
+
+  return `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
+}
+
+/** Vision models in order of preference (precision first, per estrategia.md) */
+const VISION_MODELS = [
+  'qwen2-vl:7b',
+  'qwen2-vl:2b',
+  'llava:7b',
+  'llama3.2-vision',
+  'moondream',
+];
+
+function hasSuspiciousPattern(shifts: ExtractedShiftCandidate[]): boolean {
+  if (shifts.length < 10) {
+    const uniquePairs = new Set(shifts.map((shift) => `${to24h(shift.start)}-${to24h(shift.end)}`));
+    const sortedDays = [...shifts].map((shift) => shift.day).sort((a, b) => a - b);
+    const onlyFirstWeek = sortedDays.length >= 5 && sortedDays[0] === 1 && sortedDays[sortedDays.length - 1] <= 7;
+    const mostlyConsecutive = sortedDays.every((day, index) => index === 0 || day === sortedDays[index - 1] + 1);
+
+    return onlyFirstWeek && mostlyConsecutive && uniquePairs.size <= 2;
+  }
+
+  const uniquePairs = new Set(shifts.map((shift) => `${to24h(shift.start)}-${to24h(shift.end)}`));
+  const sortedDays = [...shifts].map((shift) => shift.day).sort((a, b) => a - b);
+  let consecutiveRuns = 1;
+
+  for (let index = 1; index < sortedDays.length; index += 1) {
+    if (sortedDays[index] === sortedDays[index - 1] + 1) {
+      consecutiveRuns += 1;
+    }
+  }
+
+  const almostAllConsecutive = consecutiveRuns >= shifts.length - 2;
+  const veryLowDiversity = uniquePairs.size <= 2;
+
+  return shifts.length >= 20 && almostAllConsecutive && veryLowDiversity;
+}
+
+function parseMonthFromResponse(rawResponse: string, currentYear: number): { year: number; monthNum: number } {
+  const explicitMonth = rawResponse.match(/"month"\s*:\s*"(\d{4})-(\d{2})"/i);
+  if (explicitMonth) {
+    return {
+      year: Number.parseInt(explicitMonth[1], 10),
+      monthNum: Number.parseInt(explicitMonth[2], 10),
+    };
+  }
+
+  let year = currentYear;
+  let monthNum = new Date().getMonth() + 1;
+  const lowerResponse = rawResponse.toLowerCase();
+
+  const monthNames: Record<string, number> = {
+    enero: 1, febrero: 2, marzo: 3, abril: 4, mayo: 5, junio: 6,
+    julio: 7, agosto: 8, septiembre: 9, octubre: 10, noviembre: 11, diciembre: 12,
+    january: 1, february: 2, march: 3, april: 4, may: 5, june: 6,
+    july: 7, august: 8, september: 9, october: 10, november: 11, december: 12,
+  };
+
+  for (const [name, num] of Object.entries(monthNames)) {
+    if (lowerResponse.includes(name)) {
+      monthNum = num;
+      break;
+    }
+  }
+
+  return { year, monthNum };
+}
 
 /**
  * Convert a File to base64 string for Ollama API
@@ -19,7 +125,6 @@ async function fileToBase64(file: File): Promise<string> {
     const reader = new FileReader();
     reader.onload = () => {
       const result = reader.result as string;
-      // Remove data:image/...;base64, prefix
       const base64 = result.split(',')[1];
       resolve(base64);
     };
@@ -29,7 +134,7 @@ async function fileToBase64(file: File): Promise<string> {
 }
 
 /**
- * Check if Ollama is available and has a vision model
+ * Check if Ollama is available and find the best vision model
  */
 export async function checkOllamaAvailable(): Promise<{ available: boolean; model: string | null }> {
   try {
@@ -37,13 +142,13 @@ export async function checkOllamaAvailable(): Promise<{ available: boolean; mode
     if (!resp.ok) return { available: false, model: null };
     
     const data = await resp.json();
-    const models = data.models || [];
+    const models: string[] = (data.models || []).map((m: any) => m.name);
     
-    // Look for vision-capable models (in order of preference)
-    const visionModels = ['llama3.2-vision:11b', 'llama3.2-vision', 'llava', 'llava:13b', 'llava:7b'];
-    for (const vm of visionModels) {
-      if (models.some((m: any) => m.name === vm || m.name.startsWith(vm.split(':')[0]))) {
-        return { available: true, model: vm };
+    // Find best available vision model
+    for (const vm of VISION_MODELS) {
+      if (models.some(m => m === vm || m.startsWith(vm.split(':')[0]))) {
+        const matched = models.find(m => m === vm || m.startsWith(vm.split(':')[0]));
+        return { available: true, model: matched || vm };
       }
     }
     
@@ -58,48 +163,48 @@ export async function checkOllamaAvailable(): Promise<{ available: boolean; mode
  */
 export async function parseCalendarWithOllama(
   file: File,
-  model?: string
+  model: string
 ): Promise<ParsedCalendarShift[]> {
   const base64Image = await fileToBase64(file);
-  const useModel = model || VISION_MODEL;
   const currentYear = new Date().getFullYear();
 
-  const prompt = `You are a precise data extraction tool. This image shows a monthly work schedule calendar from a mobile app. The current year is ${currentYear}.
+  const isMoondream = model.includes('moondream');
+  
+  const prompt = isMoondream
+    ? `Read this monthly work calendar for year ${currentYear}.
+Return only days from the main month shown in the header.
+Ignore previous/next month faded days, ignore "Libre" and "TD".
+For each worked day output exactly: Day [number]: [start time] - [end time].
+Example: Day 1: 08:00 - 16:00`
+    : `Analyze this monthly work calendar for year ${currentYear}.
+Rules:
+- Return only days belonging to the main month in the header.
+- Ignore faded days from previous/next month.
+- Ignore cells marked "Libre" or "TD".
+- The start time is shown above the end time inside each day cell.
+- If a day has no valid pair of times, omit it.
+Reply only in JSON using this schema:
+{"month":"${currentYear}-MM","shifts":[{"day":1,"start":"HH:MM","end":"HH:MM"}]}`;
 
-TASK: Extract ALL work shifts from this calendar image into JSON format.
-
-HOW TO READ THE CALENDAR:
-- The calendar has 7 columns (Monday to Sunday) and 5-6 rows
-- Each day cell shows a day number and may contain colored blocks with times
-- Work shifts have TWO times stacked vertically: TOP = start time, BOTTOM = end time
-- Days marked "Libre" or "TD" are days off - skip them
-- Faded/gray days belong to previous or next month - skip them
-- The month name appears at the top of the calendar
-
-ANALYZE EACH ROW carefully. Look at EVERY single day from day 1 to day 31.
-List ALL shifts you can see in the colored blocks.
-
-OUTPUT FORMAT - respond with ONLY this JSON, no other text:
-{"month":"${currentYear}-MM","shifts":[{"day":1,"start":"HH:MM","end":"HH:MM"}]}
-
-Be exhaustive - there should be approximately 15-25 shifts in a typical month.`;
-
-  console.log(`[Ollama] Sending image to ${useModel}...`);
+  console.log(`[Ollama] Sending image to ${model}...`);
+  const startTime = Date.now();
 
   const response = await fetch(OLLAMA_API, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      model: useModel,
+      model,
       prompt,
       images: [base64Image],
       stream: false,
       options: {
-        temperature: 0.05,
-        num_predict: 8192,
+        temperature: 0.1,
+        num_predict: 2048,
       }
     })
   });
+
+  const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
 
   if (!response.ok) {
     const errText = await response.text();
@@ -108,43 +213,86 @@ Be exhaustive - there should be approximately 15-25 shifts in a typical month.`;
 
   const result = await response.json();
   const rawResponse = result.response || '';
+  console.log(`[Ollama] Response in ${elapsed}s:`, rawResponse);
+
+  // Pre-sanitize: remove brackets and single quotes that might confuse simple regex
+  const cleanResponse = rawResponse.replace(/[\[\]']/g, ' ');
+
+  // --- ULTRA-RESILIENT extraction ---
+  const shiftArray: ExtractedShiftCandidate[] = [];
   
-  console.log('[Ollama] Raw response:', rawResponse);
+  // Pattern 1: Day 1: 08:00 - 16:00
+  const p1 = /(?:Day|Día|D)\s*(\d+)[:\- ]+\s*(\d{1,2}:\d{2}(?:\s*[AP]M)?)\s*(?:[-–to]|y|hasta|and)\s*(\d{1,2}:\d{2}(?:\s*[AP]M)?)/gi;
+  // Pattern 2: 05/03, 08:00, 16:00 or 05-03 : 08:00 ...
+  const p2 = /(\d{1,2})[\/\.\-](\d{1,2})[\s,:\- ]+(\d{1,2}:\d{2}(?:\s*[AP]M)?)\s*[\s,:\-–to y hasta and]+\s*(\d{1,2}:\d{2}(?:\s*[AP]M)?)/gi;
+  // Pattern 3: JSON "day": 1, "start": "09:00", "end": "17:00"
+  const p3 = /"day"\s*:\s*(\d+)\s*,\s*"start"\s*:\s*"([^"]+)"\s*,\s*"end"\s*:\s*"([^"]+)"/gi;
+  // Pattern 4: Generic sequence: Day [Space] Time [Space] Time
+  const p4 = /(?:^|[\s,])(\d{1,2})\s+[\s,:]\s*(\d{1,2}:\d{2})\s*[\s,:-]\s*(\d{1,2}:\d{2})/g;
 
-  // Extract JSON from response (might be wrapped in markdown code blocks)
-  let jsonStr = rawResponse;
-  const jsonMatch = rawResponse.match(/```(?:json)?\s*([\s\S]*?)```/);
-  if (jsonMatch) {
-    jsonStr = jsonMatch[1].trim();
-  } else {
-    // Try to find raw JSON object
-    const objMatch = rawResponse.match(/\{[\s\S]*\}/);
-    if (objMatch) {
-      jsonStr = objMatch[0];
-    }
+  let match;
+  
+  // Run on cleanResponse
+  while ((match = p1.exec(cleanResponse)) !== null) {
+    shiftArray.push({ day: parseInt(match[1]), start: match[2], end: match[3] });
+  }
+  while ((match = p2.exec(cleanResponse)) !== null) {
+    const n1 = parseInt(match[1]);
+    const n2 = parseInt(match[2]);
+    const day = (n1 > 12) ? n1 : (n2 > 12 ? n2 : n1); 
+    shiftArray.push({ day, start: match[3], end: match[4] });
+  }
+  while ((match = p3.exec(cleanResponse)) !== null) {
+    shiftArray.push({ day: parseInt(match[1]), start: match[2], end: match[3] });
+  }
+  while ((match = p4.exec(cleanResponse)) !== null) {
+    shiftArray.push({ day: parseInt(match[1]), start: match[2], end: match[3] });
   }
 
-  try {
-    const parsed = JSON.parse(jsonStr);
-    const monthStr = parsed.month || '';
-    const [yearStr, monthNumStr] = monthStr.split('-');
-    const year = parseInt(yearStr) || new Date().getFullYear();
-    const monthNum = parseInt(monthNumStr) || (new Date().getMonth() + 1);
-
-    const shifts: ParsedCalendarShift[] = (parsed.shifts || []).map((s: any) => ({
-      date: `${year}-${String(monthNum).padStart(2, '0')}-${String(s.day).padStart(2, '0')}`,
-      startTime: s.start,
-      endTime: s.end,
-      isValid: true,
-      confidence: 0.95,
-      rawText: `${s.start} - ${s.end} (Ollama)`
-    }));
-
-    shifts.sort((a, b) => a.date.localeCompare(b.date));
-    console.log(`[Ollama] Parsed ${shifts.length} shifts`);
-    return shifts;
-  } catch (e) {
-    console.error('[Ollama] Failed to parse JSON:', e, '\nRaw:', jsonStr);
-    throw new Error('El modelo no devolvió JSON válido. Revisa la consola.');
+  if (shiftArray.length === 0) {
+    console.error('[Ollama] No shifts found in response');
+    throw new Error(`No se encontraron turnos en la respuesta (${elapsed}s). Revisa la consola.`);
   }
+
+  if (hasSuspiciousPattern(shiftArray)) {
+    console.warn('[Ollama] Suspiciously repetitive response discarded:', shiftArray);
+    throw new Error(`La respuesta del modelo parece inventada o demasiado uniforme (${elapsed}s).`);
+  }
+
+  const { year, monthNum } = parseMonthFromResponse(rawResponse, currentYear);
+
+  // Deduplicate by day (keep first occurrence)
+  const seenDays = new Set<number>();
+  const uniqueShifts = shiftArray.filter(s => {
+    if (seenDays.has(s.day)) return false;
+    seenDays.add(s.day);
+    return true;
+  });
+
+  const shifts: ParsedCalendarShift[] = uniqueShifts
+    .map((shift) => {
+      const startTime = normalize24hTime(shift.start);
+      const endTime = normalize24hTime(shift.end);
+      if (!startTime || !endTime) {
+        return null;
+      }
+
+      return {
+        date: `${year}-${String(monthNum).padStart(2, '0')}-${String(shift.day).padStart(2, '0')}`,
+        startTime,
+        endTime,
+        isValid: true,
+        confidence: 0.9,
+        rawText: `${shift.start} - ${shift.end} (${model})`,
+      };
+    })
+    .filter((shift): shift is ParsedCalendarShift => shift !== null);
+
+  if (shifts.length === 0) {
+    throw new Error(`La respuesta del modelo no contiene horas validas (${elapsed}s).`);
+  }
+
+  shifts.sort((a, b) => a.date.localeCompare(b.date));
+  console.log(`[Ollama] Parsed ${shifts.length} shifts in ${elapsed}s`);
+  return shifts;
 }

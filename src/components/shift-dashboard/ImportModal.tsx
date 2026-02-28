@@ -1,7 +1,7 @@
-import React, { useState, useRef } from 'react';
-import { X, Upload, FileImage, Loader2, Trash2 } from 'lucide-react';
-import { ParsedCalendarShift } from '../../lib/calendar-image-parser';
-import { extractTextBlocksWithPositions, detectMonthYear, processCalendarData } from '../../lib/calendar-image-parser';
+import React, { useState, useRef, useEffect } from 'react';
+import { X, Upload, FileImage, Loader2, Trash2, Cpu, ScanLine } from 'lucide-react';
+import { ParsedCalendarShift, parseCalendarImageWithTesseract } from '../../lib/calendar-image-parser';
+import { checkOllamaAvailable, parseCalendarWithOllama } from '../../lib/ollama-vision-parser';
 import { Shift } from '../../lib/types';
 
 interface ImportModalProps {
@@ -10,13 +10,104 @@ interface ImportModalProps {
   onConfirmImport: (shifts: Shift[]) => void;
 }
 
+type OcrEngine = 'vision' | 'tesseract';
+
+function isIsoDate(value: string): boolean {
+  return /^\d{4}-\d{2}-\d{2}$/.test(value);
+}
+
+function getYearMonth(date: string): string | null {
+  return isIsoDate(date) ? date.slice(0, 7) : null;
+}
+
+function pickDominantMonth(shifts: ParsedCalendarShift[]): string | null {
+  const counts = new Map<string, number>();
+
+  for (const shift of shifts) {
+    const yearMonth = getYearMonth(shift.date);
+    if (!yearMonth) {
+      continue;
+    }
+    counts.set(yearMonth, (counts.get(yearMonth) ?? 0) + 1);
+  }
+
+  let best: string | null = null;
+  let bestCount = 0;
+  for (const [yearMonth, count] of counts.entries()) {
+    if (count > bestCount) {
+      best = yearMonth;
+      bestCount = count;
+    }
+  }
+
+  return best;
+}
+
+function sanitizeMonthScope(shifts: ParsedCalendarShift[], preferredMonth?: string | null): ParsedCalendarShift[] {
+  const targetMonth = preferredMonth ?? pickDominantMonth(shifts);
+  if (!targetMonth) {
+    return shifts;
+  }
+
+  return shifts.filter((shift) => getYearMonth(shift.date) === targetMonth);
+}
+
+function scoreShifts(shifts: ParsedCalendarShift[]): number {
+  return shifts.reduce((total, shift) => {
+    const complete = shift.startTime !== '??:??' && shift.endTime !== '??:??';
+    return total + (complete ? 4 : 1) + Math.round(shift.confidence * 10);
+  }, 0);
+}
+
+function countCompleteShifts(shifts: ParsedCalendarShift[]): number {
+  return shifts.filter((shift) => shift.startTime !== '??:??' && shift.endTime !== '??:??').length;
+}
+
+function mergeParsedShifts(primary: ParsedCalendarShift[], secondary: ParsedCalendarShift[]): ParsedCalendarShift[] {
+  const byDate = new Map<string, ParsedCalendarShift>();
+
+  for (const shift of primary) {
+    byDate.set(shift.date, shift);
+  }
+
+  for (const shift of secondary) {
+    const existing = byDate.get(shift.date);
+    if (!existing) {
+      byDate.set(shift.date, shift);
+      continue;
+    }
+
+    byDate.set(shift.date, {
+      ...existing,
+      startTime: existing.startTime === '??:??' && shift.startTime !== '??:??' ? shift.startTime : existing.startTime,
+      endTime: existing.endTime === '??:??' && shift.endTime !== '??:??' ? shift.endTime : existing.endTime,
+      isValid: existing.isValid || shift.isValid,
+      confidence: Math.max(existing.confidence, shift.confidence),
+      rawText: `${existing.rawText} || ${shift.rawText}`,
+    });
+  }
+
+  return Array.from(byDate.values()).sort((a, b) => a.date.localeCompare(b.date));
+}
+
 export const ImportModal = ({ isOpen, onClose, onConfirmImport }: ImportModalProps) => {
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [parsedShifts, setParsedShifts] = useState<ParsedCalendarShift[]>([]);
+  const [engine, setEngine] = useState<OcrEngine>('vision');
+  const [visionModel, setVisionModel] = useState<string | null>(null);
+  const [scanTime, setScanTime] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Check Ollama availability on mount
+  useEffect(() => {
+    checkOllamaAvailable().then(({ available, model }) => {
+      setVisionModel(model);
+      if (!available || !model) setEngine('tesseract');
+    });
+  }, []);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selected = e.target.files?.[0];
@@ -25,6 +116,7 @@ export const ImportModal = ({ isOpen, onClose, onConfirmImport }: ImportModalPro
       setPreviewUrl(URL.createObjectURL(selected));
       setParsedShifts([]);
       setError(null);
+      setScanTime(null);
     }
   };
 
@@ -32,19 +124,61 @@ export const ImportModal = ({ isOpen, onClose, onConfirmImport }: ImportModalPro
     if (!file) return;
     setLoading(true);
     setError(null);
-    try {
-      console.log('[ImportModal] Starting OCR for file:', file.name);
-      const { blocks, rawText } = await extractTextBlocksWithPositions(file);
+    setScanTime(null);
+    const t0 = Date.now();
 
-      if (!rawText && blocks.length === 0) {
-        setError('El OCR no pudo extraer texto de la imagen.');
-        setLoading(false);
-        return;
+    try {
+      let shifts: ParsedCalendarShift[];
+
+      if (engine === 'vision' && visionModel) {
+        console.log(`[ImportModal] Using Vision Model: ${visionModel}`);
+        const [visionResult, ocrResult] = await Promise.allSettled([
+          parseCalendarWithOllama(file, visionModel),
+          parseCalendarImageWithTesseract(file),
+        ]);
+
+        const visionShifts = visionResult.status === 'fulfilled' ? visionResult.value : [];
+        const ocrShifts = ocrResult.status === 'fulfilled' ? ocrResult.value : [];
+
+        if (visionResult.status === 'rejected') {
+          console.warn('[ImportModal] Vision result rejected, falling back to OCR:', visionResult.reason);
+        }
+        if (ocrResult.status === 'rejected') {
+          console.warn('[ImportModal] OCR result rejected:', ocrResult.reason);
+        }
+
+        if (visionShifts.length === 0 && ocrShifts.length === 0) {
+          throw new Error('No se pudo obtener una lectura valida ni con IA local ni con OCR.');
+        }
+
+        const dominantMonth = pickDominantMonth(visionShifts) ?? pickDominantMonth(ocrShifts);
+        const scopedVisionShifts = sanitizeMonthScope(visionShifts, dominantMonth);
+        const scopedOcrShifts = sanitizeMonthScope(ocrShifts, dominantMonth);
+
+        const visionScore = scoreShifts(scopedVisionShifts);
+        const ocrScore = scoreShifts(scopedOcrShifts);
+        const visionComplete = countCompleteShifts(scopedVisionShifts);
+        const ocrComplete = countCompleteShifts(scopedOcrShifts);
+        const primary = visionScore >= ocrScore ? scopedVisionShifts : scopedOcrShifts;
+        const secondary = visionScore >= ocrScore ? scopedOcrShifts : scopedVisionShifts;
+
+        console.log('[ImportModal] Vision score:', visionScore, 'OCR score:', ocrScore);
+
+        const strongOcrLead =
+          ocrScore >= visionScore * 1.5 ||
+          ocrComplete >= visionComplete + 5;
+
+        shifts = strongOcrLead
+          ? scopedOcrShifts
+          : (primary.length > 0 ? mergeParsedShifts(primary, secondary) : secondary);
+      } else {
+        console.log('[ImportModal] Using Tesseract.js OCR');
+        shifts = sanitizeMonthScope(await parseCalendarImageWithTesseract(file));
       }
 
-      const { month, year } = detectMonthYear(rawText, blocks);
-      const shifts = processCalendarData(blocks, rawText, month, year);
-      console.log('[ImportModal] Parsed shifts:', shifts.length);
+      const elapsed = ((Date.now() - t0) / 1000).toFixed(1);
+      setScanTime(elapsed);
+      console.log(`[ImportModal] ${shifts.length} shifts in ${elapsed}s`);
 
       if (shifts.length === 0) {
         setError('No se detectaron turnos. Revisa la consola para más detalles.');
@@ -85,6 +219,8 @@ export const ImportModal = ({ isOpen, onClose, onConfirmImport }: ImportModalPro
 
   if (!isOpen) return null;
 
+  const modelLabel = visionModel?.split(':')[0] || 'Vision';
+
   return (
     <div className="modal-overlay">
       <div className="modal-content" style={{ maxWidth: '1000px', width: '95%', height: '85vh', display: 'flex', flexDirection: 'column' }}>
@@ -93,6 +229,42 @@ export const ImportModal = ({ isOpen, onClose, onConfirmImport }: ImportModalPro
         </button>
 
         <h2 style={{ fontSize: '1.5rem', fontWeight: '800', marginBottom: '16px' }}>Importador Inteligente</h2>
+
+        {/* Engine toggle */}
+        <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
+          <button
+            onClick={() => setEngine('vision')}
+            disabled={!visionModel}
+            style={{
+              flex: 1, padding: '10px 12px', borderRadius: '10px', border: '1px solid',
+              borderColor: engine === 'vision' ? 'var(--color-gold)' : 'var(--glass-border)',
+              background: engine === 'vision' ? 'rgba(212, 175, 55, 0.15)' : 'transparent',
+              color: engine === 'vision' ? 'var(--color-gold)' : 'rgba(245,245,240,0.4)',
+              cursor: visionModel ? 'pointer' : 'not-allowed',
+              opacity: visionModel ? 1 : 0.4,
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+              fontSize: '0.75rem', fontWeight: '700', textTransform: 'uppercase',
+            }}
+          >
+            <Cpu size={14} />
+            {visionModel ? `${modelLabel} (IA Local)` : 'Sin modelo IA'}
+          </button>
+          <button
+            onClick={() => setEngine('tesseract')}
+            style={{
+              flex: 1, padding: '10px 12px', borderRadius: '10px', border: '1px solid',
+              borderColor: engine === 'tesseract' ? 'var(--color-accent)' : 'var(--glass-border)',
+              background: engine === 'tesseract' ? 'rgba(175, 210, 250, 0.15)' : 'transparent',
+              color: engine === 'tesseract' ? 'var(--color-accent)' : 'rgba(245,245,240,0.4)',
+              cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+              fontSize: '0.75rem', fontWeight: '700', textTransform: 'uppercase',
+            }}
+          >
+            <ScanLine size={14} />
+            Tesseract OCR
+          </button>
+        </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'minmax(300px, 1fr) 1.5fr', gap: '24px', flex: 1, overflow: 'hidden' }}>
           {/* Left: Upload & Image Preview */}
@@ -120,7 +292,7 @@ export const ImportModal = ({ isOpen, onClose, onConfirmImport }: ImportModalPro
               <div style={{ flex: 1, position: 'relative', borderRadius: '16px', overflow: 'hidden', border: '1px solid var(--glass-border)' }}>
                 <img src={previewUrl} alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'contain', background: '#0a0f1e' }} />
                 <button 
-                  onClick={() => { setFile(null); setPreviewUrl(null); setParsedShifts([]); setError(null); }}
+                  onClick={() => { setFile(null); setPreviewUrl(null); setParsedShifts([]); setError(null); setScanTime(null); }}
                   style={{ position: 'absolute', top: '12px', right: '12px', background: 'rgba(255,0,0,0.5)', border: 'none', padding: '6px', borderRadius: '8px', cursor: 'pointer' }}
                 >
                   <Trash2 size={16} color="white" />
@@ -139,7 +311,7 @@ export const ImportModal = ({ isOpen, onClose, onConfirmImport }: ImportModalPro
               {loading ? (
                 <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
                   <Loader2 size={18} style={{ animation: 'spin 1s linear infinite' }} />
-                  Analizando...
+                  {engine === 'vision' ? `Analizando con ${modelLabel}...` : 'Analizando...'}
                 </span>
               ) : 'Escanear Imagen'}
             </button>
@@ -149,7 +321,9 @@ export const ImportModal = ({ isOpen, onClose, onConfirmImport }: ImportModalPro
           <div style={{ display: 'flex', flexDirection: 'column', background: 'rgba(255,255,255,0.03)', borderRadius: '16px', padding: '16px', overflow: 'hidden' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
               <h3 style={{ fontSize: '1rem', fontWeight: '700', color: 'var(--color-accent)' }}>Turnos Detectados</h3>
-              <span style={{ fontSize: '0.75rem', opacity: 0.6 }}>{parsedShifts.length} encontrados</span>
+              <span style={{ fontSize: '0.75rem', opacity: 0.6 }}>
+                {parsedShifts.length} encontrados{scanTime ? ` (${scanTime}s)` : ''}
+              </span>
             </div>
             
             {error && (
