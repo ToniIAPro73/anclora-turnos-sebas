@@ -33,7 +33,9 @@ export const ImportModal = ({ isOpen, onClose, onConfirmImport }: ImportModalPro
     setError(null);
     try {
       console.log('[ImportModal] Starting OCR for file:', file.name, 'size:', file.size);
-      const { blocks, rawText } = await extractTextBlocksWithPositions(file);
+      const ocrResult = await extractTextBlocksWithPositions(file);
+      const { blocks, rawText } = ocrResult;
+      const supplementaryText = (ocrResult as any).supplementaryText as string | undefined;
       console.log('[ImportModal] OCR complete. Blocks:', blocks.length, 'Text length:', rawText.length);
 
       if (!rawText && blocks.length === 0) {
@@ -45,11 +47,11 @@ export const ImportModal = ({ isOpen, onClose, onConfirmImport }: ImportModalPro
       const { month, year } = detectMonthYear(rawText, blocks);
       console.log('[ImportModal] Month:', month, 'Year:', year);
 
-      const shifts = processCalendarData(blocks, rawText, month, year);
+      const shifts = processCalendarData(blocks, rawText, month, year, supplementaryText);
       console.log('[ImportModal] Parsed shifts:', shifts.length);
 
       if (shifts.length === 0) {
-        setError(`OCR completado (${blocks.length} bloques, ${rawText.length} caracteres) pero no se detectaron patrones de turno. Revisa la consola para más detalles.`);
+        setError(`OCR completado (${rawText.length} caracteres) pero no se detectaron patrones de turno. Revisa la consola para más detalles.`);
       }
 
       setParsedShifts(shifts);
@@ -73,7 +75,7 @@ export const ImportModal = ({ isOpen, onClose, onConfirmImport }: ImportModalPro
 
   const handleConfirm = () => {
     const finalShifts: Shift[] = parsedShifts
-      .filter(s => s.isValid)
+      .filter(s => s.startTime !== '??:??' && s.endTime !== '??:??')
       .map(s => ({
         id: crypto.randomUUID(),
         date: s.date,
@@ -216,7 +218,7 @@ export const ImportModal = ({ isOpen, onClose, onConfirmImport }: ImportModalPro
                 disabled={parsedShifts.length === 0 || loading}
                 onClick={handleConfirm}
               >
-                Confirmar Importación ({parsedShifts.filter(s => s.isValid).length} turnos)
+                Confirmar Importación ({parsedShifts.filter(s => s.startTime !== '??:??' && s.endTime !== '??:??').length}/{parsedShifts.length} listos)
               </button>
             </div>
           </div>
