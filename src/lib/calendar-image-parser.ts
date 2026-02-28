@@ -398,12 +398,50 @@ function inferMissingShiftTimes(shifts: ParsedCalendarShift[]): ParsedCalendarSh
     }
   }
 
+  const normalizedShifts = shifts.map((shift) => {
+    const hasStart = shift.startTime !== '??:??';
+    const hasEnd = shift.endTime !== '??:??';
+    if (hasStart === hasEnd) {
+      return shift;
+    }
+
+    if (hasStart) {
+      const startCount = completeStarts.get(shift.startTime) ?? 0;
+      const endCount = completeEnds.get(shift.startTime) ?? 0;
+      if (endCount >= startCount + 2) {
+        return {
+          ...shift,
+          startTime: '??:??',
+          endTime: shift.startTime,
+          isValid: false,
+          rawText: `${shift.rawText} || reinterpret:end`,
+        };
+      }
+    }
+
+    if (hasEnd) {
+      const startCount = completeStarts.get(shift.endTime) ?? 0;
+      const endCount = completeEnds.get(shift.endTime) ?? 0;
+      if (startCount >= endCount + 2) {
+        return {
+          ...shift,
+          startTime: shift.endTime,
+          endTime: '??:??',
+          isValid: false,
+          rawText: `${shift.rawText} || reinterpret:start`,
+        };
+      }
+    }
+
+    return shift;
+  });
+
   const commonDurations = Array.from(durationCounts.entries())
     .sort((left, right) => right[1] - left[1])
     .slice(0, 4)
     .map(([minutes]) => minutes);
 
-  return shifts.map((shift) => {
+  return normalizedShifts.map((shift) => {
     if (isCompleteShift(shift)) {
       return shift;
     }

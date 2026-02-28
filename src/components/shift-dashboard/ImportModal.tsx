@@ -247,7 +247,7 @@ export const ImportModal = ({ isOpen, onClose, onConfirmImport }: ImportModalPro
             }}
           >
             <Cpu size={14} />
-            {visionModel ? `${modelLabel} (IA Local)` : 'Sin modelo IA'}
+            {visionModel ? `${modelLabel} (IA Local)` : 'Qwen Vision no instalado'}
           </button>
           <button
             onClick={() => setEngine('tesseract')}
@@ -332,6 +332,15 @@ export const ImportModal = ({ isOpen, onClose, onConfirmImport }: ImportModalPro
                 borderRadius: '10px', padding: '12px', marginBottom: '12px', fontSize: '0.8rem', color: '#ff6b6b'
               }}>
                 ⚠️ {error}
+              </div>
+            )}
+
+            {!visionModel && engine === 'tesseract' && (
+              <div style={{
+                background: 'rgba(175, 210, 250, 0.12)', border: '1px solid rgba(175, 210, 250, 0.24)',
+                borderRadius: '10px', padding: '12px', marginBottom: '12px', fontSize: '0.8rem', color: 'var(--color-accent)'
+              }}>
+                Instala un modelo Qwen de vision en Ollama, por ejemplo `qwen3-vl`, `qwen2-vl:7b` o `qwen2-vl:2b`.
               </div>
             )}
 

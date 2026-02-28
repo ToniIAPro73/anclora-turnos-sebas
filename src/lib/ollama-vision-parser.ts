@@ -52,14 +52,42 @@ function normalize24hTime(t: string): string | null {
   return `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
 }
 
-/** Vision models in order of preference (precision first, per estrategia.md) */
-const VISION_MODELS = [
+/** Preferred Qwen vision models for this repo */
+const PREFERRED_VISION_MODELS = [
+  'qwen3-vl:8b',
+  'qwen3-vl:4b',
+  'qwen3-vl',
+  'qwen3',
   'qwen2-vl:7b',
   'qwen2-vl:2b',
-  'llava:7b',
-  'llama3.2-vision',
-  'moondream',
 ];
+
+function isPreferredQwenVisionModel(modelName: string, preferred: string): boolean {
+  if (modelName === preferred) {
+    return true;
+  }
+
+  const normalized = modelName.toLowerCase();
+  const target = preferred.toLowerCase();
+
+  if (normalized.startsWith(target)) {
+    return true;
+  }
+
+  if (target === 'qwen3') {
+    return normalized.startsWith('qwen3');
+  }
+
+  if (target.startsWith('qwen3-vl')) {
+    return normalized.startsWith('qwen3-vl');
+  }
+
+  if (target.startsWith('qwen2-vl')) {
+    return normalized.startsWith('qwen2-vl');
+  }
+
+  return false;
+}
 
 function hasSuspiciousPattern(shifts: ExtractedShiftCandidate[]): boolean {
   if (shifts.length < 10) {
@@ -144,14 +172,15 @@ export async function checkOllamaAvailable(): Promise<{ available: boolean; mode
     const data = await resp.json();
     const models: string[] = (data.models || []).map((m: any) => m.name);
     
-    // Find best available vision model
-    for (const vm of VISION_MODELS) {
-      if (models.some(m => m === vm || m.startsWith(vm.split(':')[0]))) {
-        const matched = models.find(m => m === vm || m.startsWith(vm.split(':')[0]));
+    // Find best available preferred vision model
+    for (const vm of PREFERRED_VISION_MODELS) {
+      if (models.some((model) => isPreferredQwenVisionModel(model, vm))) {
+        const matched = models.find((model) => isPreferredQwenVisionModel(model, vm));
         return { available: true, model: matched || vm };
       }
     }
     
+    console.warn('[Ollama] No se encontro un modelo Qwen de vision compatible. Vision local desactivada.');
     return { available: true, model: null };
   } catch {
     return { available: false, model: null };
