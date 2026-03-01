@@ -169,6 +169,16 @@ button:hover {
   font-size: 14px;
 }
 
+select.modal-input {
+  background-color: rgba(255, 255, 255, 0.08);
+  color: var(--color-surface);
+}
+
+select.modal-input option {
+  background: #f5f5f0;
+  color: #192350;
+}
+
 .btn-gold {
   background: var(--gradient-gold);
   color: var(--color-primary);

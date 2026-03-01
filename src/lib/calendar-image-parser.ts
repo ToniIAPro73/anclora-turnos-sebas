@@ -18,6 +18,14 @@ export interface ParsedCalendarShift {
   isValid: boolean;
   confidence: number;
   rawText: string;
+  shiftType?: string;
+  notes?: string | null;
+  color?: string | null;
+}
+
+export interface CalendarImportContext {
+  month: number;
+  year: number;
 }
 
 const MONTHS_ES: Record<string, number> = {
@@ -1308,6 +1316,18 @@ export function detectMonthYear(rawText: string, blocks: TextBlock[]): { month: 
   return { month: detectedMonth, year: detectedYear };
 }
 
+function resolveCalendarContext(
+  rawText: string,
+  blocks: TextBlock[],
+  context?: CalendarImportContext,
+): CalendarImportContext {
+  if (context) {
+    return context;
+  }
+
+  return detectMonthYear(rawText, blocks);
+}
+
 export async function extractTextBlocksWithPositions(imageFile: File): Promise<{ blocks: TextBlock[]; rawText: string }> {
   const worker = await createWorker('spa+eng');
 
@@ -1323,6 +1343,17 @@ export async function extractTextBlocksWithPositions(imageFile: File): Promise<{
       blocks: dedupeBlocks(passes.flatMap((pass) => pass.blocks)),
       rawText: passes.map((pass) => pass.rawText).join('\n'),
     };
+  } finally {
+    await worker.terminate();
+  }
+}
+
+export async function extractTextFromImageWithTesseract(imageFile: File): Promise<string> {
+  const worker = await createWorker('spa+eng');
+
+  try {
+    const result = await worker.recognize(imageFile);
+    return result.data.text ?? '';
   } finally {
     await worker.terminate();
   }
@@ -1345,7 +1376,10 @@ export function processCalendarData(
   return mergeShiftCandidates(grid, primary, secondary);
 }
 
-export async function parseCalendarImageWithTesseract(imageFile: File): Promise<ParsedCalendarShift[]> {
+export async function parseCalendarImageWithTesseract(
+  imageFile: File,
+  context?: CalendarImportContext,
+): Promise<ParsedCalendarShift[]> {
   const worker = await createWorker('spa+eng');
 
   try {
@@ -1360,7 +1394,7 @@ export async function parseCalendarImageWithTesseract(imageFile: File): Promise<
 
     const blocks = dedupeBlocks(fullPasses.flatMap((pass) => pass.blocks));
     const rawText = fullPasses.map((pass) => pass.rawText).join('\n');
-    const { month, year } = detectMonthYear(rawText, blocks);
+    const { month, year } = resolveCalendarContext(rawText, blocks, context);
     const imageWidth = baseCanvas.width;
     const imageHeight = baseCanvas.height;
 

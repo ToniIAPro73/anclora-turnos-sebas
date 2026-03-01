@@ -7,6 +7,7 @@ import { MonthHeader } from './components/shift-dashboard/MonthHeader';
 import { MonthGrid } from './components/shift-dashboard/MonthGrid';
 import { ShiftModal } from './components/shift-dashboard/ShiftModal';
 import { ImportModal } from './components/shift-dashboard/ImportModal';
+import { CalendarImportContext } from './lib/calendar-image-parser';
 
 function App() {
   const [shifts, setShifts] = useState<Shift[]>([]);
@@ -65,6 +66,13 @@ function App() {
     setIsModalOpen(true);
   };
 
+  const handleConfirmImport = (newShifts: Shift[], targetPeriod: CalendarImportContext) => {
+    setShifts((current) => [...current, ...newShifts]);
+    setCurrentYear(targetPeriod.year);
+    setCurrentMonth(targetPeriod.month);
+    setIsImportOpen(false);
+  };
+
   return (
     <div className="container">
       <MonthHeader
@@ -102,7 +110,7 @@ function App() {
       <ImportModal
         isOpen={isImportOpen}
         onClose={() => setIsImportOpen(false)}
-        onConfirmImport={(newShifts) => setShifts([...shifts, ...newShifts])}
+        onConfirmImport={handleConfirmImport}
       />
     </div>
   );
