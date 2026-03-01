@@ -1,7 +1,7 @@
 import { CalendarImportContext, ParsedCalendarShift } from './calendar-image-parser';
 
 const DEFAULT_TURNO_APP_PUBLIC_EXTRACT_URL =
-  'https://3000-i6m0y9d08zi38wmzuibz5-f8d4e65e.us1.manus.computer/api/public/shifts/extract';
+  'https://turnoapp-awy6ty8s.manus.space/api/public/shifts/extract';
 const TURNO_APP_PUBLIC_EXTRACT_URL =
   import.meta.env.VITE_TURNO_APP_ENDPOINT_URL?.trim() || DEFAULT_TURNO_APP_PUBLIC_EXTRACT_URL;
 const ORIGIN_MODEL = 'gemini-2.5-flash';
