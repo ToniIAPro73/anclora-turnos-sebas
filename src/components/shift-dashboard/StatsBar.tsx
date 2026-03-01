@@ -1,46 +1,70 @@
 import { useMemo } from 'react';
-import { Shift } from '../../lib/types';
-import { aggregateWeeklyStats } from '../../lib/shifts';
-import { Calendar, CheckCircle } from 'lucide-react';
+import { Shift, ShiftOrigin, WeeklyStats } from '../../lib/types';
+import { aggregateWeeklyStats, filterShiftsByOrigin } from '../../lib/shifts';
 
 interface StatsBarProps {
   currentMonthShifts: Shift[];
   daysInMonth: number;
+  currentYearShifts: Shift[];
+  daysInYear: number;
 }
 
-export const StatsBar = ({ currentMonthShifts, daysInMonth }: StatsBarProps) => {
-  const stats = useMemo(() => aggregateWeeklyStats(currentMonthShifts, daysInMonth), [currentMonthShifts, daysInMonth]);
+function buildOriginStats(shifts: Shift[], totalDays: number, origin: ShiftOrigin) {
+  return aggregateWeeklyStats(filterShiftsByOrigin(shifts, origin), totalDays);
+}
+
+function TotalToken({
+  label,
+  value,
+  suffix,
+  className,
+}: {
+  label: string;
+  value: string;
+  suffix: string;
+  className?: string;
+}) {
+  return (
+    <span className={`totals-token ${className ?? ''}`.trim()}>
+      <strong>{label}</strong> {value}{suffix}
+    </span>
+  );
+}
+
+function SummaryLine({
+  title,
+  monthStats,
+  yearStats,
+}: {
+  title: string;
+  monthStats: WeeklyStats;
+  yearStats: WeeklyStats;
+}) {
+  return (
+    <div className="totals-line">
+      <div className="totals-line-title">{title}</div>
+      <div className="totals-line-values">
+        <TotalToken label="Mes" value={monthStats.weeklyHours.toFixed(1)} suffix="h" />
+        <TotalToken label="Regular" value={monthStats.hoursByType.Regular.toFixed(1)} suffix="h" className="type-regular" />
+        <TotalToken label="JT" value={monthStats.hoursByType.JT.toFixed(1)} suffix="h" className="type-jt" />
+        <TotalToken label="Libres" value={String(monthStats.freeDays)} suffix="d" className="type-libre" />
+        <TotalToken label="Extras" value={monthStats.hoursByType.Extras.toFixed(1)} suffix="h" className="type-extras" />
+        <TotalToken label="Año" value={yearStats.weeklyHours.toFixed(1)} suffix="h" />
+      </div>
+    </div>
+  );
+}
+
+export const StatsBar = ({ currentMonthShifts, daysInMonth, currentYearShifts, daysInYear }: StatsBarProps) => {
+  const ownMonthStats = useMemo(() => buildOriginStats(currentMonthShifts, daysInMonth, 'IMG'), [currentMonthShifts, daysInMonth]);
+  const ownYearStats = useMemo(() => buildOriginStats(currentYearShifts, daysInYear, 'IMG'), [currentYearShifts, daysInYear]);
+  const companyMonthStats = useMemo(() => buildOriginStats(currentMonthShifts, daysInMonth, 'PDF'), [currentMonthShifts, daysInMonth]);
+  const companyYearStats = useMemo(() => buildOriginStats(currentYearShifts, daysInYear, 'PDF'), [currentYearShifts, daysInYear]);
 
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 'var(--space-md)', flexShrink: 0 }}>
-      <div className="stats-bar-card">
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--color-gold)', fontSize: '0.7rem', fontWeight: '700', marginBottom: '2px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-          <Calendar size={13} /> Horas Mes
-        </div>
-        <div style={{ fontWeight: '700', fontSize: '1rem', color: 'var(--color-accent)' }}>
-          {stats.weeklyHours.toFixed(1)} <span style={{ fontSize: '0.75rem', opacity: 0.6 }}>h</span>
-        </div>
-      </div>
-
-      <div className="stats-bar-card">
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--color-gold)', fontSize: '0.7rem', fontWeight: '700', marginBottom: '2px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-          <CheckCircle size={13} /> Desglose
-        </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '6px 12px' }}>
-          <div style={{ fontWeight: '700', fontSize: '0.9rem', color: 'var(--color-accent)' }}>
-            Regular {stats.hoursByType.Regular.toFixed(1)}<span style={{ fontSize: '0.75rem', opacity: 0.6 }}> h</span>
-          </div>
-          <div style={{ fontWeight: '700', fontSize: '0.9rem', color: '#a78bfa' }}>
-            JT {stats.hoursByType.JT.toFixed(1)}<span style={{ fontSize: '0.75rem', opacity: 0.6 }}> h</span>
-          </div>
-          <div style={{ fontWeight: '700', fontSize: '0.9rem', color: '#ef4444' }}>
-            Libres {stats.freeDays}<span style={{ fontSize: '0.75rem', opacity: 0.6 }}> días</span>
-          </div>
-          <div style={{ fontWeight: '700', fontSize: '0.9rem', color: 'var(--color-gold)' }}>
-            Extras {stats.hoursByType.Extras.toFixed(1)}<span style={{ fontSize: '0.75rem', opacity: 0.6 }}> h</span>
-          </div>
-        </div>
-      </div>
+    <div className="totals-ribbon">
+      <SummaryLine title="Propios" monthStats={ownMonthStats} yearStats={ownYearStats} />
+      <SummaryLine title="Empresa" monthStats={companyMonthStats} yearStats={companyYearStats} />
     </div>
   );
 };

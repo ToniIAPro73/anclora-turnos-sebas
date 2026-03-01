@@ -15,6 +15,7 @@ export interface ParsedCalendarShift {
   date: string;
   startTime: string;
   endTime: string;
+  origin?: 'IMG' | 'PDF';
   isValid: boolean;
   confidence: number;
   rawText: string;

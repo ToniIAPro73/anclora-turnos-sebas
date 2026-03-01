@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { Shift } from './lib/types';
 import { getMonthDaysISO, getDaysInMonth } from './lib/week';
 import { loadShifts, saveShifts } from './lib/storage';
-import { getShiftType, hasShiftTimes } from './lib/shifts';
+import { getShiftOrigin, getShiftType, hasShiftTimes } from './lib/shifts';
 import { StatsBar } from './components/shift-dashboard/StatsBar';
 import { MonthHeader } from './components/shift-dashboard/MonthHeader';
 import { MonthGrid } from './components/shift-dashboard/MonthGrid';
@@ -28,6 +28,7 @@ function normalizeShift(shift: Shift): Shift {
     startTime: shift.startTime.trim(),
     endTime: shift.endTime.trim(),
     location: shift.location.trim(),
+    origin: shift.origin === 'PDF' ? 'PDF' : 'IMG',
   };
 }
 
@@ -66,7 +67,13 @@ function timeRangesOverlap(left: Shift, right: Shift): boolean {
 function findShiftConflict(current: Shift[], incoming: Shift): string | null {
   const normalizedIncoming = normalizeShift(incoming);
   const incomingType = getShiftType(normalizedIncoming);
-  const comparable = current.filter((shift) => shift.id !== normalizedIncoming.id && shift.date === normalizedIncoming.date);
+  const incomingOrigin = getShiftOrigin(normalizedIncoming);
+  const comparable = current.filter(
+    (shift) =>
+      shift.id !== normalizedIncoming.id &&
+      shift.date === normalizedIncoming.date &&
+      getShiftOrigin(shift) === incomingOrigin,
+  );
   const exclusiveTypes = new Set(['JT', 'Regular', 'Libre']);
 
   const sameType = comparable.find((shift) => getShiftType(shift) === incomingType);
@@ -99,8 +106,22 @@ function insertShift(current: Shift[], incoming: Shift): Shift[] {
   return [...current.filter((shift) => shift.id !== incoming.id), normalizeShift(incoming)];
 }
 
+function shiftsMatch(left: Shift, right: Shift): boolean {
+  const normalizedLeft = normalizeShift(left);
+  const normalizedRight = normalizeShift(right);
+
+  return (
+    normalizedLeft.date === normalizedRight.date &&
+    normalizedLeft.origin === normalizedRight.origin &&
+    getShiftType(normalizedLeft) === getShiftType(normalizedRight) &&
+    normalizedLeft.startTime === normalizedRight.startTime &&
+    normalizedLeft.endTime === normalizedRight.endTime
+  );
+}
+
 function App() {
   const [shifts, setShifts] = useState<Shift[]>([]);
+  const [isStorageReady, setIsStorageReady] = useState(false);
   const now = new Date();
   const [currentYear, setCurrentYear] = useState(now.getFullYear());
   const [currentMonth, setCurrentMonth] = useState(now.getMonth());
@@ -109,12 +130,32 @@ function App() {
   const [editingShiftId, setEditingShiftId] = useState<string | null>(null);
 
   useEffect(() => {
-    setShifts(loadShifts());
+    let cancelled = false;
+
+    const hydrateShifts = async () => {
+      const nextShifts = await loadShifts();
+      if (cancelled) {
+        return;
+      }
+
+      setShifts(nextShifts);
+      setIsStorageReady(true);
+    };
+
+    void hydrateShifts();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   useEffect(() => {
-    saveShifts(shifts);
-  }, [shifts]);
+    if (!isStorageReady) {
+      return;
+    }
+
+    void saveShifts(shifts);
+  }, [shifts, isStorageReady]);
 
   const monthDays = useMemo(() => getMonthDaysISO(currentYear, currentMonth), [currentYear, currentMonth]);
   const daysInMonth = useMemo(() => getDaysInMonth(currentYear, currentMonth), [currentYear, currentMonth]);
@@ -124,6 +165,14 @@ function App() {
     const lastDay = monthDays[monthDays.length - 1];
     return shifts.filter(s => s.date >= firstDay && s.date <= lastDay);
   }, [shifts, monthDays]);
+  const currentYearShifts = useMemo(
+    () => shifts.filter((shift) => shift.date.startsWith(`${currentYear}-`)),
+    [shifts, currentYear],
+  );
+  const daysInYear = useMemo(
+    () => new Date(currentYear, 12, 0).getDate() === 366 ? 366 : 365,
+    [currentYear],
+  );
 
   const editingShift = useMemo(() =>
     shifts.find(s => s.id === editingShiftId) || null
@@ -163,29 +212,48 @@ function App() {
   };
 
   const handleConfirmImport = (newShifts: Shift[], targetPeriod: CalendarImportContext) => {
-    setShifts((current) => {
-      const accepted = [...current];
-      const conflicts: string[] = [];
+    const normalizedIncoming = newShifts.map(normalizeShift);
+    const duplicateExisting = shifts.filter((existing) =>
+      normalizedIncoming.some((incoming) => shiftsMatch(existing, incoming)),
+    );
 
-      for (const shift of newShifts) {
-        const conflict = findShiftConflict(accepted, shift);
-        if (conflict) {
-          conflicts.push(conflict);
-          continue;
-        }
+    let baseShifts = [...shifts];
+    if (duplicateExisting.length > 0) {
+      const confirmed = window.confirm(
+        `Se han detectado ${duplicateExisting.length} turnos repetidos en el calendario. ` +
+        'Pulsa Aceptar para machacar los turnos nuevos sobre los existentes o Cancelar para abortar la importación.',
+      );
 
-        accepted.push(normalizeShift(shift));
+      if (!confirmed) {
+        return;
       }
 
-      if (conflicts.length > 0) {
-        const summary = conflicts.length === 1
-          ? conflicts[0]
-          : `${conflicts.length} turnos no se importaron:\n- ${conflicts.join('\n- ')}`;
-        window.alert(summary);
+      baseShifts = shifts.filter((existing) =>
+        !normalizedIncoming.some((incoming) => shiftsMatch(existing, incoming)),
+      );
+    }
+
+    const accepted = [...baseShifts];
+    const conflicts: string[] = [];
+
+    for (const shift of normalizedIncoming) {
+      const conflict = findShiftConflict(accepted, shift);
+      if (conflict) {
+        conflicts.push(conflict);
+        continue;
       }
 
-      return accepted;
-    });
+      accepted.push(normalizeShift(shift));
+    }
+
+    if (conflicts.length > 0) {
+      const summary = conflicts.length === 1
+        ? conflicts[0]
+        : `${conflicts.length} turnos no se importaron:\n- ${conflicts.join('\n- ')}`;
+      window.alert(summary);
+    }
+
+    setShifts(accepted);
     setCurrentYear(targetPeriod.year);
     setCurrentMonth(targetPeriod.month);
     setIsImportOpen(false);
@@ -204,17 +272,23 @@ function App() {
         onImport={() => setIsImportOpen(true)}
       />
 
-      <StatsBar
-        currentMonthShifts={currentMonthShifts}
-        daysInMonth={daysInMonth}
-      />
+      <div className="dashboard-body">
+        <StatsBar
+          currentMonthShifts={currentMonthShifts}
+          daysInMonth={daysInMonth}
+          currentYearShifts={currentYearShifts}
+          daysInYear={daysInYear}
+        />
 
-      <MonthGrid
-        year={currentYear}
-        month={currentMonth}
-        shifts={currentMonthShifts}
-        onEditShift={handleEditShift}
-      />
+        <section className="calendar-stage">
+          <MonthGrid
+            year={currentYear}
+            month={currentMonth}
+            shifts={currentMonthShifts}
+            onEditShift={handleEditShift}
+          />
+        </section>
+      </div>
 
       <ShiftModal
         isOpen={isModalOpen}

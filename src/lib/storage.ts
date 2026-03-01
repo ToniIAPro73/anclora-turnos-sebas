@@ -1,6 +1,7 @@
 import { Shift } from './types';
 
 const STORAGE_KEY = 'anclora_shifts_v1';
+const SHIFTS_API_URL = '/api/shifts';
 
 const normalizeShiftDate = (value: string): string => {
   const trimmed = value.trim();
@@ -19,13 +20,10 @@ const normalizeShift = (shift: Shift): Shift => ({
   startTime: shift.startTime.trim(),
   endTime: shift.endTime.trim(),
   location: shift.location.trim(),
+  origin: shift.origin === 'PDF' ? 'PDF' : 'IMG',
 });
 
-export const saveShifts = (shifts: Shift[]): void => {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(shifts.map(normalizeShift)));
-};
-
-export const loadShifts = (): Shift[] => {
+const loadLocalShifts = (): Shift[] => {
   const data = localStorage.getItem(STORAGE_KEY);
   if (!data) return [];
   try {
@@ -33,5 +31,70 @@ export const loadShifts = (): Shift[] => {
   } catch (e) {
     console.error('Failed to parse shifts from storage', e);
     return [];
+  }
+};
+
+async function readApiShifts(): Promise<Shift[]> {
+  const response = await fetch(SHIFTS_API_URL, {
+    method: 'GET',
+    headers: {
+      Accept: 'application/json',
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error(`GET ${SHIFTS_API_URL} failed with ${response.status}`);
+  }
+
+  const payload = (await response.json()) as { shifts?: Shift[] };
+  if (!Array.isArray(payload.shifts)) {
+    throw new Error('Invalid shifts payload from API');
+  }
+
+  return payload.shifts.map(normalizeShift);
+}
+
+async function writeApiShifts(shifts: Shift[]): Promise<void> {
+  const response = await fetch(SHIFTS_API_URL, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      Accept: 'application/json',
+    },
+    body: JSON.stringify({
+      shifts: shifts.map(normalizeShift),
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`PUT ${SHIFTS_API_URL} failed with ${response.status}`);
+  }
+}
+
+export const saveShifts = async (shifts: Shift[]): Promise<void> => {
+  const normalized = shifts.map(normalizeShift);
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(normalized));
+
+  try {
+    await writeApiShifts(normalized);
+  } catch (error) {
+    console.error('Failed to sync shifts to API, keeping local cache', error);
+  }
+};
+
+export const loadShifts = async (): Promise<Shift[]> => {
+  const localShifts = loadLocalShifts();
+
+  try {
+    const remoteShifts = await readApiShifts();
+    if (remoteShifts.length === 0 && localShifts.length > 0) {
+      return localShifts;
+    }
+
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(remoteShifts));
+    return remoteShifts;
+  } catch (error) {
+    console.error('Failed to load shifts from API, using local cache', error);
+    return localShifts;
   }
 };

@@ -1,5 +1,6 @@
 import { ChevronLeft, ChevronRight, PlusCircle } from 'lucide-react';
 import { addWeeks } from '../../lib/week';
+import { TurnosLogo } from '../branding/TurnosLogo';
 
 interface WeekHeaderProps {
   currentWeekStart: string;
@@ -12,11 +13,15 @@ export const WeekHeader = ({ currentWeekStart, onNavigate, onAddShift, onImport 
   return (
     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-lg)' }}>
+        <TurnosLogo />
         <div>
           <h1 style={{ fontSize: '1.35rem', fontWeight: '800', background: 'var(--gradient-accent)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', letterSpacing: '-0.02em', lineHeight: 1 }}>
             Tablero de Turnos
           </h1>
           <p style={{ fontSize: '0.75rem', color: 'rgba(245, 245, 240, 0.4)', marginTop: '2px' }}>by Anclora Group</p>
+          <p style={{ fontSize: '0.72rem', color: 'rgba(245, 245, 240, 0.6)', marginTop: '4px' }}>
+            Sebastian Pozo Mendoza · ID 84881
+          </p>
         </div>
         
         <div style={{ display: 'flex', alignItems: 'center', gap: '4px', background: 'rgba(255,255,255,0.05)', borderRadius: '12px', padding: '4px' }}>

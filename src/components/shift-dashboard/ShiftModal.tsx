@@ -18,7 +18,8 @@ export const ShiftModal = ({ isOpen, editingShift, onClose, onSave, onDelete }: 
     date: new Date().toISOString().split('T')[0],
     startTime: '08:00',
     endTime: '14:00',
-    location: 'Regular'
+    location: 'Regular',
+    origin: 'IMG',
   });
 
   useEffect(() => {
@@ -33,7 +34,8 @@ export const ShiftModal = ({ isOpen, editingShift, onClose, onSave, onDelete }: 
         date: new Date().toISOString().split('T')[0],
         startTime: '08:00',
         endTime: '15:00',
-        location: 'Regular'
+        location: 'Regular',
+        origin: 'IMG',
       });
     }
   }, [editingShift, isOpen]);

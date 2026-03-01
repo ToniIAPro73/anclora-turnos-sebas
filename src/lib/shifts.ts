@@ -1,4 +1,4 @@
-import { Shift, ShiftCategory, ShiftWithDerived, WeeklyStats } from './types';
+import { Shift, ShiftCategory, ShiftOrigin, ShiftWithDerived, WeeklyStats } from './types';
 import { durationMinutes, parseHHMM } from './time';
 
 const isEmptyTime = (value: string): boolean => value.trim() === '';
@@ -36,6 +36,7 @@ export const hasShiftTimes = (shift: Shift): boolean =>
   !isEmptyTime(shift.startTime) && !isEmptyTime(shift.endTime);
 
 export const isFreeShift = (shift: Shift): boolean => getShiftType(shift) === 'Libre';
+export const getShiftOrigin = (shift: Shift): ShiftOrigin => shift.origin === 'PDF' ? 'PDF' : 'IMG';
 
 /**
  * Pure functions for shift business logic.
@@ -122,3 +123,6 @@ export const aggregateWeeklyStats = (shifts: Shift[], totalDays: number = 7): We
 
   return { weeklyHours, freeDays, hoursByType };
 };
+
+export const filterShiftsByOrigin = (shifts: Shift[], origin: ShiftOrigin): Shift[] =>
+  shifts.filter((shift) => getShiftOrigin(shift) === origin);

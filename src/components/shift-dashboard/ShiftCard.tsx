@@ -2,6 +2,13 @@ import { Shift } from '../../lib/types';
 import { enrichShift, getShiftType, hasShiftTimes, isFreeShift } from '../../lib/shifts';
 import { MapPin, ArrowRight } from 'lucide-react';
 
+const typeColor: Record<string, string> = {
+  'Regular': '#3b82f6',
+  'JT': '#a78bfa',
+  'Extras': '#D4AF37',
+  'Libre': '#ef4444',
+};
+
 interface ShiftCardProps {
   shift: Shift;
   onClick: (id: string) => void;
@@ -10,6 +17,7 @@ interface ShiftCardProps {
 export const ShiftCard = ({ shift, onClick }: ShiftCardProps) => {
   const shiftType = getShiftType(shift);
   const shiftIsFree = isFreeShift(shift);
+  const accentColor = typeColor[shiftType] || '#3b82f6';
   if (shiftIsFree) {
     return (
       <div
@@ -22,7 +30,7 @@ export const ShiftCard = ({ shift, onClick }: ShiftCardProps) => {
             fontWeight: '800',
             textTransform: 'uppercase',
             letterSpacing: '0.05em',
-            color: '#ef4444',
+            color: accentColor,
             opacity: 1
           }}>
             {shiftType}
@@ -36,7 +44,7 @@ export const ShiftCard = ({ shift, onClick }: ShiftCardProps) => {
           fontWeight: '700',
           fontSize: '1.1rem',
           marginBottom: '6px',
-          color: '#ef4444',
+          color: accentColor,
         }}>
           Dia libre
         </div>
@@ -74,8 +82,8 @@ export const ShiftCard = ({ shift, onClick }: ShiftCardProps) => {
           fontWeight: '800', 
           textTransform: 'uppercase', 
           letterSpacing: '0.05em',
-          color: enriched.category === 'Noche' ? '#AFD2FA' : 'var(--color-surface)',
-          opacity: enriched.category === 'Noche' ? 1 : 0.8
+          color: accentColor,
+          opacity: 1
         }}>
           {shiftType}
         </span>

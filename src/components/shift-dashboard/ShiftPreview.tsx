@@ -20,6 +20,7 @@ const getShiftTypeColor = (type: string): string => {
     'Regular': '#3b82f6',
     'Libre': '#ef4444',
     'JT': '#a78bfa',
+    'Extras': '#D4AF37',
   };
   return typeMap[type] || '#6b7280';
 };

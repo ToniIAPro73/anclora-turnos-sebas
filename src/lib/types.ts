@@ -1,4 +1,5 @@
 export type ShiftCategory = 'Mañana' | 'Tarde' | 'Noche';
+export type ShiftOrigin = 'IMG' | 'PDF';
 
 export interface Shift {
   id: string;
@@ -6,6 +7,7 @@ export interface Shift {
   startTime: string; // HH:mm
   endTime: string; // HH:mm
   location: string;
+  origin: ShiftOrigin;
 }
 
 export interface ShiftWithDerived extends Shift {
