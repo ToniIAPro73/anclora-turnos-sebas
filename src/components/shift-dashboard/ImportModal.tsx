@@ -28,6 +28,8 @@ export const ImportModal = ({ isOpen, onClose, onConfirmImport }: ImportModalPro
   const [parsedShifts, setParsedShifts] = useState<ParsedCalendarShift[]>([]);
   const [backendModel, setBackendModel] = useState<string | null>(null);
   const [scanTime, setScanTime] = useState<string | null>(null);
+  const [employeeName, setEmployeeName] = useState<string>('Sebastian Pozo Mendoza');
+  const [employeeId, setEmployeeId] = useState<string>('84881');
   const [selectedMonth, setSelectedMonth] = useState<string>('');
   const [selectedYear, setSelectedYear] = useState<string>(String(now.getFullYear()));
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -162,6 +164,28 @@ export const ImportModal = ({ isOpen, onClose, onConfirmImport }: ImportModalPro
         <h2 style={{ fontSize: '1.5rem', fontWeight: '800', marginBottom: '16px' }}>Importador Inteligente</h2>
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px' }}>
+          <label style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '0.8rem', color: 'rgba(245,245,240,0.72)' }}>
+            <span>Nombre</span>
+            <input
+              className="modal-input"
+              type="text"
+              value={employeeName}
+              onChange={(event) => setEmployeeName(event.target.value)}
+              style={{ padding: '10px 12px' }}
+            />
+          </label>
+
+          <label style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '0.8rem', color: 'rgba(245,245,240,0.72)' }}>
+            <span>ID</span>
+            <input
+              className="modal-input"
+              type="text"
+              value={employeeId}
+              onChange={(event) => setEmployeeId(event.target.value)}
+              style={{ padding: '10px 12px' }}
+            />
+          </label>
+
           <label style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '0.8rem', color: 'rgba(245,245,240,0.72)' }}>
             <span>Mes del calendario</span>
             <select className="modal-input" value={selectedMonth} onChange={(event) => setSelectedMonth(event.target.value)} style={{ padding: '10px 12px' }}>
