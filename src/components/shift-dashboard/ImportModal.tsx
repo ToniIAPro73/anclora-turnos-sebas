@@ -3,6 +3,7 @@ import { Cpu, FileImage, Loader2, Trash2, Upload, X } from 'lucide-react';
 import { CalendarImportContext, ParsedCalendarShift, extractTextFromImageWithTesseract } from '../../lib/calendar-image-parser';
 import { checkGeminiAvailable, parseCalendarTextWithGemini, parseCalendarWithGemini } from '../../lib/gemini-vision-parser';
 import { Shift } from '../../lib/types';
+import { normalizeShiftTypeLabel } from '../../lib/shifts';
 
 interface ImportModalProps {
   isOpen: boolean;
@@ -10,24 +11,12 @@ interface ImportModalProps {
   onConfirmImport: (shifts: Shift[], targetPeriod: CalendarImportContext) => void;
 }
 
-function isIsoDate(value: string): boolean {
-  return /^\d{4}-\d{2}-\d{2}$/.test(value);
+function isFreeShift(shift: Pick<ParsedCalendarShift, 'shiftType'>): boolean {
+  return (shift.shiftType ?? '').trim().toLowerCase() === 'libre';
 }
 
-function getYearMonth(date: string): string | null {
-  return isIsoDate(date) ? date.slice(0, 7) : null;
-}
-
-function formatYearMonth(year: number, month: number): string {
-  return `${year}-${String(month + 1).padStart(2, '0')}`;
-}
-
-function sanitizeMonthScope(shifts: ParsedCalendarShift[], targetMonth?: string | null): ParsedCalendarShift[] {
-  if (!targetMonth) {
-    return shifts;
-  }
-
-  return shifts.filter((shift) => getYearMonth(shift.date) === targetMonth);
+function hasImportableShiftData(shift: ParsedCalendarShift): boolean {
+  return Boolean((shift.shiftType ?? '').trim()) || (shift.startTime !== '??:??') || (shift.endTime !== '??:??');
 }
 
 export const ImportModal = ({ isOpen, onClose, onConfirmImport }: ImportModalProps) => {
@@ -63,7 +52,7 @@ export const ImportModal = ({ isOpen, onClose, onConfirmImport }: ImportModalPro
     checkGeminiAvailable().then(({ available, model }) => {
       setBackendModel(model);
       if (!available || !model) {
-        setError('Falta configurar el proxy Forge/Gemini en el backend. Define BUILT_IN_FORGE_API_KEY o FORGE_API_KEY.');
+        setError('No se pudo preparar la conexion con el endpoint publico de turno-app.');
       }
     });
   }, []);
@@ -95,11 +84,9 @@ export const ImportModal = ({ isOpen, onClose, onConfirmImport }: ImportModalPro
       month: Number.parseInt(selectedMonth, 10),
       year: Number.parseInt(selectedYear, 10),
     };
-    const targetMonth = formatYearMonth(importContext.year, importContext.month);
-
     try {
       if (!backendModel) {
-        throw new Error('Este flujo requiere el proxy backend con acceso a Gemini 2.5 Flash via Forge.');
+        throw new Error('Este flujo requiere el endpoint publico de turno-app con Gemini 2.5 Flash.');
       }
 
       const ocrText = await extractTextFromImageWithTesseract(file);
@@ -113,15 +100,14 @@ export const ImportModal = ({ isOpen, onClose, onConfirmImport }: ImportModalPro
         setError(`Se uso OCR + LLM como fallback: ${visionError?.message || 'error desconocido'}`);
       }
 
-      const scopedShifts = sanitizeMonthScope(shifts, targetMonth);
       const elapsed = ((Date.now() - startedAt) / 1000).toFixed(1);
       setScanTime(elapsed);
 
-      if (scopedShifts.length === 0) {
+      if (shifts.length === 0) {
         setError('No se detectaron turnos. Revisa la consola para más detalles.');
       }
 
-      setParsedShifts(scopedShifts);
+      setParsedShifts(shifts);
     } catch (importError: any) {
       console.error('[ImportModal] Error:', importError);
       setError(`Error: ${importError?.message || 'Error desconocido'}`);
@@ -140,7 +126,7 @@ export const ImportModal = ({ isOpen, onClose, onConfirmImport }: ImportModalPro
     setParsedShifts(parsedShifts.filter((_, currentIndex) => currentIndex !== index));
   };
 
-  const readyShifts = parsedShifts.filter((shift) => shift.startTime !== '??:??' && shift.endTime !== '??:??');
+  const readyShifts = parsedShifts.filter(hasImportableShiftData);
 
   const handleConfirm = () => {
     const importContext: CalendarImportContext = {
@@ -151,9 +137,9 @@ export const ImportModal = ({ isOpen, onClose, onConfirmImport }: ImportModalPro
     const finalShifts: Shift[] = readyShifts.map((shift) => ({
       id: crypto.randomUUID(),
       date: shift.date,
-      startTime: shift.startTime,
-      endTime: shift.endTime,
-      location: shift.shiftType ? `Importado (${shift.shiftType})` : 'Importado (OCR)',
+      startTime: shift.startTime === '??:??' ? '' : shift.startTime,
+      endTime: shift.endTime === '??:??' ? '' : shift.endTime,
+      location: normalizeShiftTypeLabel(shift.shiftType ?? '') || 'Regular',
     }));
 
     onConfirmImport(finalShifts, importContext);
@@ -219,7 +205,7 @@ export const ImportModal = ({ isOpen, onClose, onConfirmImport }: ImportModalPro
             }}
           >
             <Cpu size={14} />
-            {backendModel ? `${modelLabel} | Manus Forge` : 'Forge no configurado'}
+            {backendModel ? `${modelLabel} | turno-app publico` : 'Endpoint no disponible'}
           </div>
         </div>
 
@@ -342,7 +328,7 @@ export const ImportModal = ({ isOpen, onClose, onConfirmImport }: ImportModalPro
                   color: 'var(--color-accent)',
                 }}
               >
-                Este flujo replica el repo origen y requiere el backend `proxy-server.mjs` con `BUILT_IN_FORGE_API_KEY` o `FORGE_API_KEY`.
+                Este flujo replica el repo origen usando su endpoint publico de extraccion.
               </div>
             )}
 
@@ -360,7 +346,8 @@ export const ImportModal = ({ isOpen, onClose, onConfirmImport }: ImportModalPro
                   </thead>
                   <tbody>
                     {parsedShifts.map((shift, index) => {
-                      const incomplete = shift.startTime === '??:??' || shift.endTime === '??:??';
+                      const isLibre = isFreeShift(shift);
+                      const incomplete = !isLibre && (shift.startTime === '??:??' || shift.endTime === '??:??');
                       return (
                         <tr key={index} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)', background: incomplete ? 'rgba(255, 107, 107, 0.08)' : 'transparent' }}>
                           <td style={{ padding: '8px' }}>
@@ -373,18 +360,18 @@ export const ImportModal = ({ isOpen, onClose, onConfirmImport }: ImportModalPro
                             <input
                               type="text"
                               className="modal-input"
-                              value={shift.startTime}
+                              value={isLibre && shift.startTime === '??:??' ? '' : shift.startTime}
                               onChange={(event) => handleUpdateShift(index, 'startTime', event.target.value)}
-                              style={{ padding: '6px', fontSize: '0.8rem', color: shift.startTime === '??:??' ? '#ff6b6b' : 'inherit' }}
+                              style={{ padding: '6px', fontSize: '0.8rem', color: !isLibre && shift.startTime === '??:??' ? '#ff6b6b' : 'inherit' }}
                             />
                           </td>
                           <td style={{ padding: '8px' }}>
                             <input
                               type="text"
                               className="modal-input"
-                              value={shift.endTime}
+                              value={isLibre && shift.endTime === '??:??' ? '' : shift.endTime}
                               onChange={(event) => handleUpdateShift(index, 'endTime', event.target.value)}
-                              style={{ padding: '6px', fontSize: '0.8rem', color: shift.endTime === '??:??' ? '#ff6b6b' : 'inherit' }}
+                              style={{ padding: '6px', fontSize: '0.8rem', color: !isLibre && shift.endTime === '??:??' ? '#ff6b6b' : 'inherit' }}
                             />
                           </td>
                           <td style={{ padding: '8px', textAlign: 'center' }}>

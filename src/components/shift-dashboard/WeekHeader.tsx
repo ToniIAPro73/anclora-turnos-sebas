@@ -14,9 +14,9 @@ export const WeekHeader = ({ currentWeekStart, onNavigate, onAddShift, onImport 
       <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-lg)' }}>
         <div>
           <h1 style={{ fontSize: '1.35rem', fontWeight: '800', background: 'var(--gradient-accent)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', letterSpacing: '-0.02em', lineHeight: 1 }}>
-            Shift Dashboard
+            Tablero de Turnos
           </h1>
-          <p style={{ fontSize: '0.75rem', color: 'rgba(245, 245, 240, 0.4)', marginTop: '2px' }}>Anclora Cognitive Solutions</p>
+          <p style={{ fontSize: '0.75rem', color: 'rgba(245, 245, 240, 0.4)', marginTop: '2px' }}>by Anclora Group</p>
         </div>
         
         <div style={{ display: 'flex', alignItems: 'center', gap: '4px', background: 'rgba(255,255,255,0.05)', borderRadius: '12px', padding: '4px' }}>

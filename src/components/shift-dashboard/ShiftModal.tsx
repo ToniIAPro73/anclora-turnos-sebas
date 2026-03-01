@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Shift } from '../../lib/types';
+import { getShiftType, normalizeShiftTypeLabel } from '../../lib/shifts';
 import { X, Trash2, Save, Calendar } from 'lucide-react';
 
 interface ShiftModalProps {
@@ -11,24 +12,28 @@ interface ShiftModalProps {
 }
 
 export const ShiftModal = ({ isOpen, editingShift, onClose, onSave, onDelete }: ShiftModalProps) => {
+  const shiftTypeOptions = ['JT', 'Regular', 'Libre', 'Extras'];
   const [formData, setFormData] = useState<Shift>({
     id: '',
     date: new Date().toISOString().split('T')[0],
     startTime: '08:00',
     endTime: '14:00',
-    location: ''
+    location: 'Regular'
   });
 
   useEffect(() => {
     if (editingShift) {
-      setFormData(editingShift);
+      setFormData({
+        ...editingShift,
+        location: getShiftType(editingShift),
+      });
     } else {
       setFormData({
         id: crypto.randomUUID(),
         date: new Date().toISOString().split('T')[0],
         startTime: '08:00',
         endTime: '15:00',
-        location: ''
+        location: 'Regular'
       });
     }
   }, [editingShift, isOpen]);
@@ -89,15 +94,27 @@ export const ShiftModal = ({ isOpen, editingShift, onClose, onSave, onDelete }: 
 
           <div>
             <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '700', marginBottom: 'var(--space-xs)', textTransform: 'uppercase', color: 'var(--color-accent)' }}>
-              Ubicación / Proyecto
+              Tipo
             </label>
-            <input 
-              type="text" 
+            <select
               className="modal-input"
-              placeholder="Ej: Lab Cognitivo 01"
               value={formData.location}
-              onChange={e => setFormData({...formData, location: e.target.value})}
-            />
+              onChange={e => {
+                const nextType = normalizeShiftTypeLabel(e.target.value) || 'Regular';
+                setFormData({
+                  ...formData,
+                  location: nextType,
+                  startTime: nextType === 'Libre' ? '' : (formData.startTime || '08:00'),
+                  endTime: nextType === 'Libre' ? '' : (formData.endTime || '15:00'),
+                });
+              }}
+            >
+              {shiftTypeOptions.map((option) => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
+            </select>
           </div>
 
           <div style={{ display: 'flex', gap: 'var(--space-md)', marginTop: 'var(--space-md)' }}>

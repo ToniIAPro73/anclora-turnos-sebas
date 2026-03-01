@@ -20,7 +20,6 @@ const getShiftTypeColor = (type: string): string => {
     'Regular': '#3b82f6',
     'Libre': '#ef4444',
     'JT': '#a78bfa',
-    'TD': '#9ca3af',
   };
   return typeMap[type] || '#6b7280';
 };
@@ -92,11 +91,6 @@ export const ShiftPreview: React.FC<ShiftPreviewProps> = ({ shifts, onRemove }) 
                   {shift.startTime && shift.endTime && (
                     <div style={{ marginTop: '4px', color: 'rgba(245, 245, 240, 0.7)' }}>
                       {shift.startTime} - {shift.endTime}
-                    </div>
-                  )}
-                  {shift.notes && (
-                    <div style={{ marginTop: '4px', color: 'rgba(245, 245, 240, 0.6)', fontSize: '0.7rem' }}>
-                      Notas: {shift.notes}
                     </div>
                   )}
                   {onRemove && (

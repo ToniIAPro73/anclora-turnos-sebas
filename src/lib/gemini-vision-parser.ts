@@ -1,5 +1,9 @@
 import { CalendarImportContext, ParsedCalendarShift } from './calendar-image-parser';
 
+const TURNO_APP_PUBLIC_EXTRACT_URL =
+  'https://3000-i6m0y9d08zi38wmzuibz5-f8d4e65e.us1.manus.computer/api/public/shifts/extract';
+const ORIGIN_MODEL = 'gemini-2.5-flash';
+
 interface ShiftCandidate {
   day: number;
   month?: number | null;
@@ -14,6 +18,14 @@ interface ShiftCandidate {
 interface VisionBackendHealth {
   available: boolean;
   model: string | null;
+}
+
+function hasMeaningfulShiftData(candidate: ShiftCandidate): boolean {
+  const hasType = Boolean(candidate.shiftType?.trim());
+  const hasNotes = Boolean(candidate.notes?.trim());
+  const hasStart = Boolean(normalizeTime(candidate.startTime));
+  const hasEnd = Boolean(normalizeTime(candidate.endTime));
+  return hasType || hasNotes || hasStart || hasEnd;
 }
 
 function normalizeTime(value: string | null | undefined): string | null {
@@ -64,9 +76,15 @@ function normalizeTime(value: string | null | undefined): string | null {
 }
 
 function normalizeShiftType(value: string | null | undefined, startTime: string | null, endTime: string | null): string {
-  const normalized = (value ?? '').trim();
-  if (normalized) {
-    return normalized;
+  const normalized = (value ?? '').trim().toUpperCase();
+  if (normalized === 'JT') {
+    return 'JT';
+  }
+  if (normalized === 'LIBRE') {
+    return 'Libre';
+  }
+  if (normalized === 'REGULAR') {
+    return 'Regular';
   }
 
   return startTime || endTime ? 'Regular' : 'Libre';
@@ -105,6 +123,10 @@ async function fileToBase64(file: File): Promise<{ mimeType: string; data: strin
 }
 
 function mapCandidate(candidate: ShiftCandidate, context: CalendarImportContext): ParsedCalendarShift | null {
+  if (!hasMeaningfulShiftData(candidate)) {
+    return null;
+  }
+
   const day = Number(candidate.day);
   if (!Number.isInteger(day) || day < 1 || day > 31) {
     return null;
@@ -129,7 +151,7 @@ function mapCandidate(candidate: ShiftCandidate, context: CalendarImportContext)
     confidence: isValid ? 0.92 : 0.62,
     rawText: JSON.stringify(candidate),
     shiftType,
-    notes: candidate.notes ?? null,
+    notes: null,
     color: normalizeColor(candidate.color, shiftType),
   };
 }
@@ -170,16 +192,7 @@ async function postJson<T>(url: string, payload: Record<string, unknown>): Promi
 }
 
 export async function checkGeminiAvailable(): Promise<VisionBackendHealth> {
-  try {
-    const response = await fetch('/health');
-    if (!response.ok) {
-      return { available: false, model: null };
-    }
-
-    return response.json() as Promise<VisionBackendHealth>;
-  } catch {
-    return { available: false, model: null };
-  }
+  return { available: true, model: ORIGIN_MODEL };
 }
 
 export async function parseCalendarWithGemini(
@@ -187,9 +200,8 @@ export async function parseCalendarWithGemini(
   context: CalendarImportContext,
 ): Promise<ParsedCalendarShift[]> {
   const inlineData = await fileToBase64(file);
-  const result = await postJson<{ shifts: ShiftCandidate[] }>('/api/shifts/extract', {
+  const result = await postJson<{ shifts: ShiftCandidate[] }>(TURNO_APP_PUBLIC_EXTRACT_URL, {
     imageBase64: inlineData.data,
-    mimeType: inlineData.mimeType,
     month: context.month + 1,
     year: context.year,
   });
@@ -199,7 +211,7 @@ export async function parseCalendarWithGemini(
     .filter((candidate): candidate is ParsedCalendarShift => candidate !== null);
 
   if (shifts.length === 0) {
-    throw new Error('El proxy no devolvio turnos utilizables para la imagen.');
+    throw new Error('El endpoint publico no devolvio turnos utilizables para la imagen.');
   }
 
   return dedupeParsedShifts(shifts);
@@ -209,7 +221,7 @@ export async function parseCalendarTextWithGemini(
   ocrText: string,
   context: CalendarImportContext,
 ): Promise<ParsedCalendarShift[]> {
-  const result = await postJson<{ shifts: ShiftCandidate[] }>('/api/shifts/extract', {
+  const result = await postJson<{ shifts: ShiftCandidate[] }>(TURNO_APP_PUBLIC_EXTRACT_URL, {
     ocrText,
     month: context.month + 1,
     year: context.year,
@@ -220,7 +232,7 @@ export async function parseCalendarTextWithGemini(
     .filter((candidate): candidate is ParsedCalendarShift => candidate !== null);
 
   if (shifts.length === 0) {
-    throw new Error('El proxy no devolvio turnos utilizables para el texto OCR.');
+    throw new Error('El endpoint publico no devolvio turnos utilizables para el texto OCR.');
   }
 
   return dedupeParsedShifts(shifts);

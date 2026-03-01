@@ -16,4 +16,9 @@ export interface ShiftWithDerived extends Shift {
 export interface WeeklyStats {
   weeklyHours: number;
   freeDays: number;
+  hoursByType: {
+    Regular: number;
+    JT: number;
+    Extras: number;
+  };
 }

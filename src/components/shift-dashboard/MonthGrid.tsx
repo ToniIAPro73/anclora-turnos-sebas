@@ -1,6 +1,6 @@
 import { Shift } from '../../lib/types';
 import { getDaysInMonth, getFirstWeekdayOfMonth, toISODate } from '../../lib/week';
-import { computeShiftCategory } from '../../lib/shifts';
+import { computeShiftCategory, getShiftType, hasShiftTimes } from '../../lib/shifts';
 
 interface MonthGridProps {
   year: number;
@@ -93,7 +93,18 @@ export const MonthGrid = ({ year, month, shifts, onEditShift }: MonthGridProps) 
 
               <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '2px', overflow: 'hidden' }}>
                 {dayShifts.map(shift => {
-                  const cat = computeShiftCategory(shift.startTime);
+                  const shiftType = getShiftType(shift);
+                  const hasTimes = hasShiftTimes(shift);
+                  const cat = hasTimes ? computeShiftCategory(shift.startTime) : 'Mañana';
+                  const accentColor =
+                    shiftType === 'Libre'
+                      ? '#ef4444'
+                      : shiftType === 'JT'
+                        ? '#8b5cf6'
+                        : shiftType === 'Extras'
+                          ? 'var(--color-gold)'
+                          : categoryColor[cat] || 'white';
+
                   return (
                     <div
                       key={shift.id}
@@ -101,7 +112,7 @@ export const MonthGrid = ({ year, month, shifts, onEditShift }: MonthGridProps) 
                       style={{
                         fontSize: '0.6rem',
                         fontWeight: '600',
-                        borderLeft: `3px solid ${categoryColor[cat] || 'white'}`,
+                        borderLeft: `3px solid ${accentColor}`,
                         padding: '2px 4px',
                         borderRadius: '4px',
                         background: 'rgba(0,0,0,0.2)',
@@ -111,12 +122,12 @@ export const MonthGrid = ({ year, month, shifts, onEditShift }: MonthGridProps) 
                         textOverflow: 'ellipsis',
                         lineHeight: 1.3,
                         transition: 'background 0.15s',
-                        color: categoryColor[cat] || 'white',
+                        color: accentColor,
                       }}
                       onMouseOver={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.08)')}
                       onMouseOut={e => (e.currentTarget.style.background = 'rgba(0,0,0,0.2)')}
                     >
-                      {shift.startTime}–{shift.endTime}
+                      {shiftType}{hasTimes ? ` ${shift.startTime}–${shift.endTime}` : ''}
                     </div>
                   );
                 })}
