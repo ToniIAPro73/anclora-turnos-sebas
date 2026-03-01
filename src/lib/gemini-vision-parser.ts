@@ -1,7 +1,9 @@
 import { CalendarImportContext, ParsedCalendarShift } from './calendar-image-parser';
 
-const TURNO_APP_PUBLIC_EXTRACT_URL =
+const DEFAULT_TURNO_APP_PUBLIC_EXTRACT_URL =
   'https://3000-i6m0y9d08zi38wmzuibz5-f8d4e65e.us1.manus.computer/api/public/shifts/extract';
+const TURNO_APP_PUBLIC_EXTRACT_URL =
+  import.meta.env.VITE_TURNO_APP_ENDPOINT_URL?.trim() || DEFAULT_TURNO_APP_PUBLIC_EXTRACT_URL;
 const ORIGIN_MODEL = 'gemini-2.5-flash';
 const TURNO_APP_API_KEY = import.meta.env.VITE_TURNO_APP_API_KEY?.trim() ?? '';
 
@@ -19,6 +21,8 @@ interface ShiftCandidate {
 interface VisionBackendHealth {
   available: boolean;
   model: string | null;
+  reason?: string | null;
+  endpointUrl?: string | null;
 }
 
 interface ExtractApiResponse {
@@ -55,9 +59,16 @@ export interface ExtractUsageMetadata {
   };
 }
 
+export interface EndpointDebugInfo {
+  context: CalendarImportContext;
+  candidates: ShiftCandidate[];
+  metadata: ExtractUsageMetadata | null;
+}
+
 export interface ImageExtractionResult {
   shifts: ParsedCalendarShift[];
   metadata: ExtractUsageMetadata | null;
+  debugInfo: EndpointDebugInfo | null;
 }
 
 function hasMeaningfulShiftData(candidate: ShiftCandidate): boolean {
@@ -213,12 +224,69 @@ function dedupeParsedShifts(shifts: ParsedCalendarShift[]): ParsedCalendarShift[
       continue;
     }
 
-    const existingScore = (existing.isValid ? 10 : 0) + Math.round(existing.confidence * 10);
-    const nextScore = (shift.isValid ? 10 : 0) + Math.round(shift.confidence * 10);
-    byDate.set(shift.date, nextScore >= existingScore ? shift : existing);
+    const existingScore = getParsedShiftQualityScore(existing);
+    const nextScore = getParsedShiftQualityScore(shift);
+    byDate.set(shift.date, nextScore > existingScore ? shift : existing);
   }
 
   return Array.from(byDate.values()).sort((left, right) => left.date.localeCompare(right.date));
+}
+
+function getParsedShiftDurationMinutes(shift: ParsedCalendarShift): number | null {
+  if (shift.startTime === '??:??' || shift.endTime === '??:??') {
+    return null;
+  }
+
+  const [startHour, startMinute] = shift.startTime.split(':').map(Number);
+  const [endHour, endMinute] = shift.endTime.split(':').map(Number);
+  if ([startHour, startMinute, endHour, endMinute].some((value) => Number.isNaN(value))) {
+    return null;
+  }
+
+  const start = (startHour * 60) + startMinute;
+  const end = (endHour * 60) + endMinute;
+  if (start === end) {
+    return 0;
+  }
+
+  return end > start ? end - start : (24 * 60) - start + end;
+}
+
+function getParsedShiftQualityScore(shift: ParsedCalendarShift): number {
+  let score = Math.round(shift.confidence * 10);
+  const normalizedType = (shift.shiftType ?? '').trim().toLowerCase();
+  const durationMinutes = getParsedShiftDurationMinutes(shift);
+  const isLibre = normalizedType === 'libre';
+
+  if (isLibre) {
+    score += 12;
+    if (shift.startTime === '??:??' && shift.endTime === '??:??') {
+      score += 8;
+    }
+    return score;
+  }
+
+  if (shift.isValid) {
+    score += 12;
+  }
+
+  if (durationMinutes === null) {
+    score -= 8;
+    return score;
+  }
+
+  if (durationMinutes === 0) {
+    score -= 12;
+    return score;
+  }
+
+  if (durationMinutes >= 60 && durationMinutes <= 16 * 60) {
+    score += 10;
+  } else {
+    score -= 4;
+  }
+
+  return score;
 }
 
 async function postJson<T>(url: string, payload: Record<string, unknown>): Promise<T> {
@@ -239,7 +307,16 @@ async function postJson<T>(url: string, payload: Record<string, unknown>): Promi
 }
 
 export async function checkGeminiAvailable(): Promise<VisionBackendHealth> {
-  return { available: true, model: ORIGIN_MODEL };
+  if (!TURNO_APP_API_KEY) {
+    return {
+      available: false,
+      model: null,
+      reason: 'Falta configurar VITE_TURNO_APP_API_KEY para usar el endpoint publico de imagen.',
+      endpointUrl: TURNO_APP_PUBLIC_EXTRACT_URL,
+    };
+  }
+
+  return { available: true, model: ORIGIN_MODEL, reason: null, endpointUrl: TURNO_APP_PUBLIC_EXTRACT_URL };
 }
 
 export async function parseCalendarWithGemini(
@@ -265,6 +342,18 @@ export async function parseCalendarWithGemini(
     throw new Error(result.error || result.details || 'El endpoint publico no pudo procesar la imagen.');
   }
 
+  const debugCandidates = candidates.filter((candidate) => {
+    const day = Number(candidate.day);
+    return day === 30 || day === 31;
+  });
+  if (debugCandidates.length > 0) {
+    console.warn('[ImportModal][endpoint raw candidates days 30/31]', {
+      context,
+      candidates: debugCandidates,
+      metadata: result.data?.metadata ?? null,
+    });
+  }
+
   const shifts = candidates
     .map((candidate) => mapCandidate(candidate, context))
     .filter((candidate): candidate is ParsedCalendarShift => candidate !== null);
@@ -276,6 +365,13 @@ export async function parseCalendarWithGemini(
   return {
     shifts: dedupeParsedShifts(shifts),
     metadata: result.data?.metadata ?? null,
+    debugInfo: debugCandidates.length > 0
+      ? {
+          context,
+          candidates: debugCandidates,
+          metadata: result.data?.metadata ?? null,
+        }
+      : null,
   };
 }
 

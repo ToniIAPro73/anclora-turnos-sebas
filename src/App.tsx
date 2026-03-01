@@ -340,6 +340,7 @@ function App() {
         isOpen={isImportOpen}
         onClose={() => setIsImportOpen(false)}
         onConfirmImport={handleConfirmImport}
+        initialContext={{ month: currentMonth, year: currentYear }}
       />
     </div>
   );

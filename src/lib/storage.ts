@@ -2,6 +2,7 @@ import { Shift } from './types';
 
 const STORAGE_KEY = 'anclora_shifts_v1';
 const SHIFTS_API_URL = '/api/shifts';
+const REMOTE_STORAGE_ENABLED = !import.meta.env.DEV || import.meta.env.VITE_ENABLE_REMOTE_STORAGE === 'true';
 
 const normalizeShiftDate = (value: string): string => {
   const trimmed = value.trim();
@@ -75,6 +76,10 @@ export const saveShifts = async (shifts: Shift[]): Promise<void> => {
   const normalized = shifts.map(normalizeShift);
   localStorage.setItem(STORAGE_KEY, JSON.stringify(normalized));
 
+  if (!REMOTE_STORAGE_ENABLED) {
+    return;
+  }
+
   try {
     await writeApiShifts(normalized);
   } catch (error) {
@@ -84,6 +89,10 @@ export const saveShifts = async (shifts: Shift[]): Promise<void> => {
 
 export const loadShifts = async (): Promise<Shift[]> => {
   const localShifts = loadLocalShifts();
+
+  if (!REMOTE_STORAGE_ENABLED) {
+    return localShifts;
+  }
 
   try {
     const remoteShifts = await readApiShifts();

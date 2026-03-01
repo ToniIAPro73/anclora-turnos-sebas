@@ -110,7 +110,7 @@ Content-Type: application/json
       "rateLimit": {
         "callsUsed": 1,
         "callsRemaining": 9,
-        "monthlyLimit": 10,
+        "monthlyLimit": 30,
         "resetDate": "2026-04-01T00:00:00.000Z"
       }
     }
@@ -161,7 +161,7 @@ El endpoint retorna información detallada sobre el coste de procesamiento:
 | `resetDate` | string | Fecha en que se reinicia el contador (ISO 8601) |
 
 **Límites:**
-- Máximo 10 llamadas por mes por API key
+- Máximo 30 llamadas por mes por API key (en modo testing, sin límite)
 - El contador se reinicia el primer día de cada mes
 - Si alcanzas el límite, recibirás un error 429
 
@@ -214,12 +214,12 @@ El endpoint retorna información detallada sobre el coste de procesamiento:
   "success": false,
   "error": "Monthly API call limit exceeded",
   "callsUsed": 10,
-  "monthlyLimit": 10,
+  "monthlyLimit": 30,
   "resetDate": "2026-04-01T00:00:00.000Z"
 }
 ```
 
-**Causa:** Has excedido el límite de 10 llamadas por mes. El contador se reinicia el primer día del siguiente mes.
+**Causa:** Has excedido el límite de 30 llamadas por mes. El contador se reinicia el primer día del siguiente mes.
 
 ### 500 - Internal Server Error
 
@@ -411,7 +411,7 @@ El coste exacto se retorna en cada respuesta en el campo `metadata.credits`.
 
 Si tu cuenta de Manus se queda sin créditos, el endpoint retornará un error 500. Deberás comprar más créditos en tu cuenta de Manus.
 
-### ¿Puedo aumentar mi límite de 10 llamadas/mes?
+### ¿Puedo aumentar mi límite de 30 llamadas/mes?
 
 Sí, contacta al administrador de la aplicación para solicitar un aumento en el límite mensual.
 

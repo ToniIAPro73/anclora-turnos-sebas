@@ -389,12 +389,12 @@ select.modal-input option {
 }
 
 .brand-mark {
-  width: 56px;
-  height: 56px;
-  border-radius: 18px;
+  width: 58px;
+  height: 58px;
+  border-radius: 50%;
   overflow: hidden;
   border: 1px solid var(--glass-border);
-  background: var(--panel-muted-bg);
+  background: transparent;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -405,6 +405,8 @@ select.modal-input option {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  transform: scale(1.08);
+  transform-origin: center;
 }
 
 .week-grid-container {
