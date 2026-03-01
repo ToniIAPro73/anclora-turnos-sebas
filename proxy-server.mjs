@@ -168,6 +168,15 @@ function extractJsonArray(rawResponse) {
     return JSON.parse(candidate.slice(arrayStart, arrayEnd + 1));
   }
 
+  const objectStart = candidate.indexOf('{');
+  const objectEnd = candidate.lastIndexOf('}');
+  if (objectStart !== -1 && objectEnd !== -1 && objectEnd > objectStart) {
+    const parsed = JSON.parse(candidate.slice(objectStart, objectEnd + 1));
+    if (Array.isArray(parsed.shifts)) {
+      return parsed.shifts;
+    }
+  }
+
   throw new Error('Forge no devolvio un array JSON valido.');
 }
 
@@ -343,6 +352,7 @@ const server = http.createServer(async (request, response) => {
     return json(response, 404, { error: 'Not found' });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown server error';
+    console.error('[proxy-server] error:', error);
     return json(response, 500, { error: message });
   }
 });
