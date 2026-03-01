@@ -53,7 +53,6 @@ export const ImportModal = ({ isOpen, onClose, onConfirmImport, initialContext }
   const [selectedYear, setSelectedYear] = useState<string>(String(initialContext.year));
   const [canStartFreshImport, setCanStartFreshImport] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const layoutRef = useRef<HTMLDivElement>(null);
   const isPdfFile = file?.type === 'application/pdf' || file?.name.toLowerCase().endsWith('.pdf');
 
   const applyDetectedContext = (context: CalendarImportContext) => {
@@ -95,9 +94,6 @@ export const ImportModal = ({ isOpen, onClose, onConfirmImport, initialContext }
     setCanStartFreshImport(hasPreviewedImportState(previewUrl, parsedShifts));
     setSelectedMonth(String(initialContext.month));
     setSelectedYear(String(initialContext.year));
-    if (layoutRef.current) {
-      layoutRef.current.scrollTop = 0;
-    }
   }, [isOpen, initialContext.month, initialContext.year, parsedShifts, previewUrl]);
 
   const resetImportState = () => {
@@ -111,9 +107,6 @@ export const ImportModal = ({ isOpen, onClose, onConfirmImport, initialContext }
     setCanStartFreshImport(false);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
-    }
-    if (layoutRef.current) {
-      layoutRef.current.scrollTop = 0;
     }
   };
 
@@ -240,10 +233,10 @@ export const ImportModal = ({ isOpen, onClose, onConfirmImport, initialContext }
 
   return (
     <div className="modal-overlay">
-      <div className="modal-content import-modal-shell" style={{ maxWidth: '1420px', width: '96vw', height: '90vh', display: 'flex', flexDirection: 'column' }}>
-        <div className="import-modal-header">
-          <h2 className="import-modal-title" style={{ fontSize: '1.5rem', fontWeight: '800', margin: 0 }}>Importador Inteligente</h2>
-          <div className="import-modal-header-actions">
+      <div className="modal-content" style={{ maxWidth: '1420px', width: '96vw', height: '90vh', display: 'flex', flexDirection: 'column' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px', marginBottom: '16px' }}>
+          <h2 style={{ fontSize: '1.5rem', fontWeight: '800', margin: 0 }}>Importador Inteligente</h2>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
             <button
               className="btn-outline"
               onClick={resetImportState}
@@ -258,9 +251,9 @@ export const ImportModal = ({ isOpen, onClose, onConfirmImport, initialContext }
           </div>
         </div>
 
-        <div className="import-modal-layout" ref={layoutRef}>
-          <div className="import-modal-controls">
-            <div className="import-modal-grid">
+        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(360px, 1fr) minmax(0, 1fr)', gap: '24px', flex: 1, overflow: 'hidden' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', overflow: 'hidden', minWidth: 0 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
               <label style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
                 <span>Nombre</span>
                 <input
@@ -309,7 +302,6 @@ export const ImportModal = ({ isOpen, onClose, onConfirmImport, initialContext }
 
             <div style={{ display: 'flex', gap: '8px' }}>
               <div
-                className="import-modal-status"
                 style={{
                   flex: 1,
                   padding: '10px 12px',
@@ -332,13 +324,19 @@ export const ImportModal = ({ isOpen, onClose, onConfirmImport, initialContext }
             </div>
 
             {backendEndpointUrl && !isPdfFile && (
-              <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', lineHeight: 1.4, wordBreak: 'break-word' }}>
+              <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', lineHeight: 1.4 }}>
                 Endpoint activo: <span style={{ color: 'var(--text-primary)' }}>{backendEndpointUrl}</span>
               </div>
             )}
 
             {usageMetadata && !isPdfFile && (
-              <div className="import-modal-usage-grid">
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+                  gap: '10px',
+                }}
+              >
                 <div style={{ border: '1px solid var(--glass-border)', borderRadius: '12px', padding: '10px 12px', background: 'var(--panel-muted-bg)' }}>
                   <div style={{ fontSize: '0.72rem', opacity: 0.68, marginBottom: '4px' }}>Coste de esta llamada</div>
                   <div style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--color-gold)' }}>{credits?.formattedEur ?? 'n/d'}</div>
@@ -370,7 +368,6 @@ export const ImportModal = ({ isOpen, onClose, onConfirmImport, initialContext }
 
             {!previewUrl ? (
               <div
-                className="import-modal-dropzone"
                 onClick={() => fileInputRef.current?.click()}
                 style={{
                   flex: 1,
@@ -400,7 +397,7 @@ export const ImportModal = ({ isOpen, onClose, onConfirmImport, initialContext }
                 </div>
               </div>
             ) : (
-              <div className="import-modal-preview-frame" style={{ flex: 1, position: 'relative', borderRadius: '16px', overflow: 'hidden', border: '1px solid var(--glass-border)' }}>
+              <div style={{ flex: 1, position: 'relative', borderRadius: '16px', overflow: 'hidden', border: '1px solid var(--glass-border)' }}>
                 <img src={previewUrl} alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'contain', background: 'var(--preview-bg)' }} />
                 <button
                   onClick={resetImportState}
@@ -412,7 +409,7 @@ export const ImportModal = ({ isOpen, onClose, onConfirmImport, initialContext }
             )}
 
             {isPdfFile && file && !previewUrl && (
-              <div className="import-modal-pdf-card" style={{ flex: 1, borderRadius: '16px', border: '1px solid var(--glass-border)', background: 'var(--panel-muted-bg)', padding: '18px', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '8px' }}>
+              <div style={{ flex: 1, borderRadius: '16px', border: '1px solid var(--glass-border)', background: 'var(--panel-muted-bg)', padding: '18px', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '8px' }}>
                 <FileImage size={36} color="var(--color-accent)" />
                 <div style={{ fontSize: '0.95rem', fontWeight: 700 }}>{file.name}</div>
                 <div style={{ fontSize: '0.8rem', opacity: 0.65 }}>Se buscara la fila del empleado y se extraeran los turnos del rango del PDF.</div>
@@ -436,8 +433,8 @@ export const ImportModal = ({ isOpen, onClose, onConfirmImport, initialContext }
             </button>
           </div>
 
-          <div className="import-modal-results">
-            <div className="import-modal-results-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', background: 'var(--panel-muted-bg)', borderRadius: '16px', padding: '16px', overflow: 'hidden', minWidth: 0 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
               <h3 style={{ fontSize: '1rem', fontWeight: '700', color: 'var(--color-accent)' }}>Turnos Detectados</h3>
               <span style={{ fontSize: '0.75rem', opacity: 0.6 }}>
                 {parsedShifts.length} encontrados{scanTime ? ` (${scanTime}s)` : ''}
@@ -501,7 +498,7 @@ export const ImportModal = ({ isOpen, onClose, onConfirmImport, initialContext }
               </div>
             )}
 
-            <div className="import-modal-table-wrap" style={{ flex: 1, overflowY: 'auto', border: '1px solid var(--glass-border)', borderRadius: '12px', minHeight: 0 }}>
+            <div style={{ flex: 1, overflowY: 'auto', border: '1px solid var(--glass-border)', borderRadius: '12px', minHeight: 0 }}>
               {parsedShifts.length > 0 ? (
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.875rem' }}>
                   <thead style={{ position: 'sticky', top: 0, background: 'var(--table-head-bg)', zIndex: 10 }}>
@@ -565,7 +562,7 @@ export const ImportModal = ({ isOpen, onClose, onConfirmImport, initialContext }
               )}
             </div>
 
-            <div className="import-modal-footer" style={{ marginTop: '16px' }}>
+            <div style={{ marginTop: '16px' }}>
               <button className="btn-gold" style={{ width: '100%', height: '48px', fontSize: '1rem' }} disabled={readyShifts.length === 0 || loading} onClick={handleConfirm}>
                 Confirmar Importación ({readyShifts.length}/{parsedShifts.length} listos)
               </button>
