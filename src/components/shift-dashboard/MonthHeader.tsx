@@ -21,9 +21,9 @@ export const MonthHeader = ({ year, month, onNavigate, onAddShift, onImport, the
 
   return (
     <div className="dashboard-header">
-      <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-lg)', minWidth: 0 }}>
+      <div className="header-brand">
         <TurnosLogo />
-        <div style={{ minWidth: 0 }}>
+        <div className="header-brand-copy">
           <h1 style={{ fontSize: '1.35rem', fontWeight: '800', background: 'var(--gradient-accent)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', letterSpacing: '-0.02em', lineHeight: 1 }}>
             Anclora GroundSync
           </h1>
@@ -42,7 +42,7 @@ export const MonthHeader = ({ year, month, onNavigate, onAddShift, onImport, the
           >
             <ChevronLeft size={20} />
           </button>
-          <div style={{ padding: '0 var(--space-md)', fontWeight: '700', fontSize: '0.95rem', minWidth: '180px', textAlign: 'center' }}>
+          <div className="month-navigator-label" style={{ padding: '0 var(--space-md)', fontWeight: '700', fontSize: '0.95rem', minWidth: '180px', textAlign: 'center' }}>
             {MONTH_NAMES[month]} {year}
           </div>
           <button
@@ -54,7 +54,7 @@ export const MonthHeader = ({ year, month, onNavigate, onAddShift, onImport, the
         </div>
       </div>
 
-      <div style={{ display: 'flex', gap: 'var(--space-md)', flexShrink: 0 }}>
+      <div className="header-actions">
         <button
           onClick={onToggleTheme}
           className="theme-toggle"

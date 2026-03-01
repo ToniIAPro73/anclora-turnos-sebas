@@ -141,6 +141,17 @@ button:hover {
   flex-shrink: 0;
 }
 
+.header-brand {
+  display: flex;
+  align-items: center;
+  gap: var(--space-lg);
+  min-width: 0;
+}
+
+.header-brand-copy {
+  min-width: 0;
+}
+
 .month-toolbar {
   display: flex;
   justify-content: center;
@@ -337,6 +348,73 @@ button:hover {
   box-shadow: var(--shadow-hover);
 }
 
+.header-actions {
+  display: flex;
+  gap: var(--space-md);
+  flex-shrink: 0;
+}
+
+.import-modal-shell {
+  max-height: 90vh;
+}
+
+.import-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.import-modal-title {
+  min-width: 0;
+}
+
+.import-modal-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.import-modal-layout {
+  display: grid;
+  grid-template-columns: minmax(360px, 1fr) minmax(0, 1fr);
+  gap: 24px;
+  flex: 1;
+  overflow: hidden;
+}
+
+.import-modal-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  overflow: hidden;
+  min-width: 0;
+}
+
+.import-modal-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.import-modal-usage-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.import-modal-results {
+  display: flex;
+  flex-direction: column;
+  background: var(--panel-muted-bg);
+  border-radius: 16px;
+  padding: 16px;
+  overflow: hidden;
+  min-width: 0;
+}
+
 .modal-input {
   background: var(--glass-bg);
   border: 1px solid var(--glass-border);
@@ -470,5 +548,203 @@ select.modal-input option {
   .totals-line-values {
     grid-template-columns: repeat(3, minmax(0, 1fr));
     white-space: normal;
+  }
+}
+
+@media (max-width: 720px) {
+  html, body {
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
+
+  body {
+    line-height: 1.35;
+  }
+
+  .container {
+    height: auto;
+    min-height: 100vh;
+    padding: 12px;
+    gap: 10px;
+  }
+
+  .header-brand {
+    gap: 12px;
+    align-items: flex-start;
+  }
+
+  .brand-mark {
+    width: 52px;
+    height: 52px;
+    flex-shrink: 0;
+  }
+
+  .header-brand-copy h1 {
+    font-size: 1.05rem !important;
+    line-height: 1.05 !important;
+  }
+
+  .month-toolbar {
+    width: 100%;
+  }
+
+  .month-navigator {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .month-navigator-label {
+    min-width: 0 !important;
+    font-size: 1rem !important;
+  }
+
+  .header-actions {
+    display: grid;
+    grid-template-columns: 44px 1fr 1fr;
+    gap: 10px;
+    width: 100%;
+  }
+
+  .header-actions .btn-outline,
+  .header-actions .btn-gold {
+    justify-content: center;
+    width: 100%;
+    padding: 10px 12px !important;
+  }
+
+  .theme-toggle {
+    width: 44px;
+    height: 40px;
+    border-radius: 12px;
+  }
+
+  .totals-ribbon {
+    gap: 6px;
+    overflow: visible;
+    padding-bottom: 0;
+  }
+
+  .totals-line {
+    grid-template-columns: 72px minmax(0, 1fr);
+    min-width: 0;
+    gap: 8px;
+    padding: 6px 8px;
+    align-items: start;
+  }
+
+  .totals-line-title {
+    padding-top: 2px;
+    font-size: 0.78rem;
+  }
+
+  .totals-line-values {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 6px 8px;
+    white-space: normal;
+    font-size: 0.62rem;
+  }
+
+  .totals-token {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    line-height: 1.1;
+  }
+
+  .totals-token strong {
+    display: block;
+    margin-right: 0;
+    font-size: 0.52rem;
+    letter-spacing: 0.04em;
+  }
+
+  .calendar-stage {
+    min-height: 520px;
+  }
+
+  .modal-overlay {
+    align-items: stretch;
+    padding: 8px;
+  }
+
+  .import-modal-shell {
+    width: 100% !important;
+    max-width: none !important;
+    height: auto !important;
+    max-height: calc(100dvh - 16px);
+    min-height: calc(100dvh - 16px);
+    padding: 18px 14px;
+  }
+
+  .import-modal-header {
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .import-modal-title {
+    font-size: 1.1rem !important;
+    line-height: 1.1;
+  }
+
+  .import-modal-header-actions {
+    gap: 6px;
+  }
+
+  .import-modal-header-actions .btn-outline {
+    padding: 8px 10px !important;
+    font-size: 0.78rem;
+  }
+
+  .import-modal-layout {
+    grid-template-columns: 1fr;
+    gap: 14px;
+    overflow-y: auto;
+    padding-right: 2px;
+  }
+
+  .import-modal-controls,
+  .import-modal-results {
+    overflow: visible;
+  }
+
+  .import-modal-grid,
+  .import-modal-usage-grid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .import-modal-status {
+    font-size: 0.68rem !important;
+    text-align: center;
+  }
+
+  .import-modal-dropzone,
+  .import-modal-preview-frame,
+  .import-modal-pdf-card {
+    min-height: 180px;
+    flex: none !important;
+  }
+
+  .import-modal-results {
+    padding: 14px;
+    min-height: 360px;
+  }
+
+  .import-modal-results-header {
+    align-items: flex-start !important;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .import-modal-table-wrap {
+    overflow: auto !important;
+  }
+
+  .modal-content table {
+    min-width: 720px;
+  }
+
+  .import-modal-footer {
+    margin-top: 12px !important;
   }
 }
