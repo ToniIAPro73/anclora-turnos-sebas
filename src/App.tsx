@@ -10,6 +10,8 @@ import { ShiftModal } from './components/shift-dashboard/ShiftModal';
 import { ImportModal } from './components/shift-dashboard/ImportModal';
 import { CalendarImportContext } from './lib/calendar-image-parser';
 
+type ThemeMode = 'system' | 'light' | 'dark';
+
 function normalizeShiftDate(value: string): string {
   const trimmed = value.trim();
   const match = trimmed.match(/(\d{4})-(\d{1,2})-(\d{1,2})/);
@@ -122,6 +124,16 @@ function shiftsMatch(left: Shift, right: Shift): boolean {
 function App() {
   const [shifts, setShifts] = useState<Shift[]>([]);
   const [isStorageReady, setIsStorageReady] = useState(false);
+  const [themeMode, setThemeMode] = useState<ThemeMode>(() => {
+    if (typeof window === 'undefined') {
+      return 'system';
+    }
+
+    const savedTheme = window.localStorage.getItem('anclora_theme_mode');
+    return savedTheme === 'light' || savedTheme === 'dark' || savedTheme === 'system'
+      ? savedTheme
+      : 'system';
+  });
   const now = new Date();
   const [currentYear, setCurrentYear] = useState(now.getFullYear());
   const [currentMonth, setCurrentMonth] = useState(now.getMonth());
@@ -156,6 +168,26 @@ function App() {
 
     void saveShifts(shifts);
   }, [shifts, isStorageReady]);
+
+  useEffect(() => {
+    const root = document.documentElement;
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+
+    const applyTheme = () => {
+      const resolvedTheme = themeMode === 'system'
+        ? (mediaQuery.matches ? 'dark' : 'light')
+        : themeMode;
+      root.dataset.theme = resolvedTheme;
+    };
+
+    applyTheme();
+    window.localStorage.setItem('anclora_theme_mode', themeMode);
+    mediaQuery.addEventListener('change', applyTheme);
+
+    return () => {
+      mediaQuery.removeEventListener('change', applyTheme);
+    };
+  }, [themeMode]);
 
   const monthDays = useMemo(() => getMonthDaysISO(currentYear, currentMonth), [currentYear, currentMonth]);
   const daysInMonth = useMemo(() => getDaysInMonth(currentYear, currentMonth), [currentYear, currentMonth]);
@@ -209,6 +241,10 @@ function App() {
   const handleEditShift = (id: string) => {
     setEditingShiftId(id);
     setIsModalOpen(true);
+  };
+
+  const handleToggleTheme = () => {
+    setThemeMode((current) => current === 'system' ? 'light' : current === 'light' ? 'dark' : 'system');
   };
 
   const handleConfirmImport = (newShifts: Shift[], targetPeriod: CalendarImportContext) => {
@@ -265,6 +301,8 @@ function App() {
         year={currentYear}
         month={currentMonth}
         onNavigate={handleNavigate}
+        themeMode={themeMode}
+        onToggleTheme={handleToggleTheme}
         onAddShift={() => {
           setEditingShiftId(null);
           setIsModalOpen(true);

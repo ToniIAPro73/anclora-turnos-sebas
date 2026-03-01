@@ -50,7 +50,7 @@ export const ShiftCard = ({ shift, onClick }: ShiftCardProps) => {
         </div>
 
         {shift.location && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.75rem', color: 'rgba(245, 245, 240, 0.4)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.75rem', color: 'var(--text-subtle)' }}>
             <MapPin size={12} /> {shift.location}
           </div>
         )}
@@ -110,7 +110,7 @@ export const ShiftCard = ({ shift, onClick }: ShiftCardProps) => {
       </div>
 
       {shift.location && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.75rem', color: 'rgba(245, 245, 240, 0.4)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.75rem', color: 'var(--text-subtle)' }}>
           <MapPin size={12} /> {shift.location}
         </div>
       )}

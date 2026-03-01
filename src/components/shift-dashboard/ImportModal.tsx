@@ -197,14 +197,14 @@ export const ImportModal = ({ isOpen, onClose, onConfirmImport }: ImportModalPro
   return (
     <div className="modal-overlay">
       <div className="modal-content" style={{ maxWidth: '1000px', width: '95%', height: '85vh', display: 'flex', flexDirection: 'column' }}>
-        <button onClick={onClose} style={{ position: 'absolute', top: '16px', right: '16px', color: 'rgba(245, 245, 240, 0.4)' }}>
+        <button onClick={onClose} style={{ position: 'absolute', top: '16px', right: '16px', color: 'var(--text-subtle)' }}>
           <X size={24} />
         </button>
 
         <h2 style={{ fontSize: '1.5rem', fontWeight: '800', marginBottom: '16px' }}>Importador Inteligente</h2>
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px' }}>
-          <label style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '0.8rem', color: 'rgba(245,245,240,0.72)' }}>
+          <label style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
             <span>Nombre</span>
             <input
               className="modal-input"
@@ -215,7 +215,7 @@ export const ImportModal = ({ isOpen, onClose, onConfirmImport }: ImportModalPro
             />
           </label>
 
-          <label style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '0.8rem', color: 'rgba(245,245,240,0.72)' }}>
+          <label style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
             <span>ID</span>
             <input
               className="modal-input"
@@ -226,7 +226,7 @@ export const ImportModal = ({ isOpen, onClose, onConfirmImport }: ImportModalPro
             />
           </label>
 
-          <label style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '0.8rem', color: 'rgba(245,245,240,0.72)' }}>
+          <label style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
             <span>Mes del calendario</span>
             <select className="modal-input" value={selectedMonth} onChange={(event) => setSelectedMonth(event.target.value)} style={{ padding: '10px 12px' }}>
               <option value="">Selecciona un mes</option>
@@ -238,7 +238,7 @@ export const ImportModal = ({ isOpen, onClose, onConfirmImport }: ImportModalPro
             </select>
           </label>
 
-          <label style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '0.8rem', color: 'rgba(245,245,240,0.72)' }}>
+          <label style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
             <span>Año del calendario</span>
             <select className="modal-input" value={selectedYear} onChange={(event) => setSelectedYear(event.target.value)} style={{ padding: '10px 12px' }}>
               {availableYears.map((yearOption) => (
@@ -257,8 +257,8 @@ export const ImportModal = ({ isOpen, onClose, onConfirmImport }: ImportModalPro
               padding: '10px 12px',
               borderRadius: '10px',
               border: '1px solid var(--color-gold)',
-              background: 'rgba(212, 175, 55, 0.15)',
-              color: backendModel ? 'var(--color-gold)' : 'rgba(245,245,240,0.55)',
+              background: 'var(--gold-tint-bg)',
+              color: backendModel ? 'var(--color-gold)' : 'var(--text-muted)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -282,26 +282,26 @@ export const ImportModal = ({ isOpen, onClose, onConfirmImport }: ImportModalPro
               marginBottom: '16px',
             }}
           >
-            <div style={{ border: '1px solid var(--glass-border)', borderRadius: '12px', padding: '10px 12px', background: 'rgba(255,255,255,0.03)' }}>
+            <div style={{ border: '1px solid var(--glass-border)', borderRadius: '12px', padding: '10px 12px', background: 'var(--panel-muted-bg)' }}>
               <div style={{ fontSize: '0.72rem', opacity: 0.68, marginBottom: '4px' }}>Coste de esta llamada</div>
               <div style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--color-gold)' }}>{credits?.formattedEur ?? 'n/d'}</div>
               {credits?.formattedUsd && <div style={{ fontSize: '0.72rem', opacity: 0.58 }}>{credits.formattedUsd}</div>}
             </div>
-            <div style={{ border: '1px solid var(--glass-border)', borderRadius: '12px', padding: '10px 12px', background: 'rgba(255,255,255,0.03)' }}>
+            <div style={{ border: '1px solid var(--glass-border)', borderRadius: '12px', padding: '10px 12px', background: 'var(--panel-muted-bg)' }}>
               <div style={{ fontSize: '0.72rem', opacity: 0.68, marginBottom: '4px' }}>Creditos consumidos</div>
               <div style={{ fontSize: '1rem', fontWeight: 800 }}>{credits?.creditsDifference ?? 'n/d'}</div>
               <div style={{ fontSize: '0.72rem', opacity: 0.58 }}>
                 {typeof credits?.creditsAfter === 'number' ? `${credits.creditsAfter} restantes` : 'sin dato'}
               </div>
             </div>
-            <div style={{ border: '1px solid var(--glass-border)', borderRadius: '12px', padding: '10px 12px', background: 'rgba(255,255,255,0.03)' }}>
+            <div style={{ border: '1px solid var(--glass-border)', borderRadius: '12px', padding: '10px 12px', background: 'var(--panel-muted-bg)' }}>
               <div style={{ fontSize: '0.72rem', opacity: 0.68, marginBottom: '4px' }}>Llamadas del mes</div>
               <div style={{ fontSize: '1rem', fontWeight: 800 }}>{typeof rateLimit?.callsUsed === 'number' && typeof rateLimit?.monthlyLimit === 'number' ? `${rateLimit.callsUsed}/${rateLimit.monthlyLimit}` : 'n/d'}</div>
               <div style={{ fontSize: '0.72rem', opacity: 0.58 }}>
                 {typeof rateLimit?.callsRemaining === 'number' ? `${rateLimit.callsRemaining} disponibles` : 'sin dato'}
               </div>
             </div>
-            <div style={{ border: '1px solid var(--glass-border)', borderRadius: '12px', padding: '10px 12px', background: 'rgba(255,255,255,0.03)' }}>
+            <div style={{ border: '1px solid var(--glass-border)', borderRadius: '12px', padding: '10px 12px', background: 'var(--panel-muted-bg)' }}>
               <div style={{ fontSize: '0.72rem', opacity: 0.68, marginBottom: '4px' }}>Reinicio del limite</div>
               <div style={{ fontSize: '1rem', fontWeight: 800 }}>{resetDateLabel ?? 'n/d'}</div>
               <div style={{ fontSize: '0.72rem', opacity: 0.58 }}>
@@ -329,7 +329,7 @@ export const ImportModal = ({ isOpen, onClose, onConfirmImport }: ImportModalPro
                   gap: '12px',
                 }}
                 onMouseOver={(event) => {
-                  event.currentTarget.style.background = 'rgba(255,255,255,0.03)';
+                  event.currentTarget.style.background = 'var(--panel-muted-bg)';
                 }}
                 onMouseOut={(event) => {
                   event.currentTarget.style.background = 'transparent';
@@ -345,7 +345,7 @@ export const ImportModal = ({ isOpen, onClose, onConfirmImport }: ImportModalPro
               </div>
             ) : (
               <div style={{ flex: 1, position: 'relative', borderRadius: '16px', overflow: 'hidden', border: '1px solid var(--glass-border)' }}>
-                <img src={previewUrl} alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'contain', background: '#0a0f1e' }} />
+                <img src={previewUrl} alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'contain', background: 'var(--preview-bg)' }} />
                 <button
                   onClick={() => {
                     setFile(null);
@@ -354,7 +354,7 @@ export const ImportModal = ({ isOpen, onClose, onConfirmImport }: ImportModalPro
                     setError(null);
                     setScanTime(null);
                   }}
-                  style={{ position: 'absolute', top: '12px', right: '12px', background: 'rgba(255,0,0,0.5)', border: 'none', padding: '6px', borderRadius: '8px', cursor: 'pointer' }}
+                  style={{ position: 'absolute', top: '12px', right: '12px', background: 'var(--danger-bg-strong)', border: 'none', padding: '6px', borderRadius: '8px', cursor: 'pointer' }}
                 >
                   <Trash2 size={16} color="white" />
                 </button>
@@ -362,7 +362,7 @@ export const ImportModal = ({ isOpen, onClose, onConfirmImport }: ImportModalPro
             )}
 
             {isPdfFile && file && !previewUrl && (
-              <div style={{ flex: 1, borderRadius: '16px', border: '1px solid var(--glass-border)', background: 'rgba(255,255,255,0.03)', padding: '18px', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '8px' }}>
+              <div style={{ flex: 1, borderRadius: '16px', border: '1px solid var(--glass-border)', background: 'var(--panel-muted-bg)', padding: '18px', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '8px' }}>
                 <FileImage size={36} color="var(--color-accent)" />
                 <div style={{ fontSize: '0.95rem', fontWeight: 700 }}>{file.name}</div>
                 <div style={{ fontSize: '0.8rem', opacity: 0.65 }}>Se buscara la fila del empleado y se extraeran los turnos del rango del PDF.</div>
@@ -386,7 +386,7 @@ export const ImportModal = ({ isOpen, onClose, onConfirmImport }: ImportModalPro
             </button>
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', background: 'rgba(255,255,255,0.03)', borderRadius: '16px', padding: '16px', overflow: 'hidden' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', background: 'var(--panel-muted-bg)', borderRadius: '16px', padding: '16px', overflow: 'hidden' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
               <h3 style={{ fontSize: '1rem', fontWeight: '700', color: 'var(--color-accent)' }}>Turnos Detectados</h3>
               <span style={{ fontSize: '0.75rem', opacity: 0.6 }}>
@@ -397,13 +397,13 @@ export const ImportModal = ({ isOpen, onClose, onConfirmImport }: ImportModalPro
             {error && (
               <div
                 style={{
-                  background: 'rgba(255, 107, 107, 0.15)',
-                  border: '1px solid rgba(255, 107, 107, 0.3)',
+                  background: 'var(--danger-bg)',
+                  border: '1px solid var(--danger-border)',
                   borderRadius: '10px',
                   padding: '12px',
                   marginBottom: '12px',
                   fontSize: '0.8rem',
-                  color: '#ff6b6b',
+                  color: 'var(--danger)',
                 }}
               >
                 ⚠️ {error}
@@ -413,8 +413,8 @@ export const ImportModal = ({ isOpen, onClose, onConfirmImport }: ImportModalPro
             {!backendModel && (
               <div
                 style={{
-                  background: 'rgba(175, 210, 250, 0.12)',
-                  border: '1px solid rgba(175, 210, 250, 0.24)',
+                  background: 'var(--info-bg)',
+                  border: '1px solid var(--info-border)',
                   borderRadius: '10px',
                   padding: '12px',
                   marginBottom: '12px',
@@ -429,7 +429,7 @@ export const ImportModal = ({ isOpen, onClose, onConfirmImport }: ImportModalPro
             <div style={{ flex: 1, overflowY: 'auto', border: '1px solid var(--glass-border)', borderRadius: '12px' }}>
               {parsedShifts.length > 0 ? (
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.875rem' }}>
-                  <thead style={{ position: 'sticky', top: 0, background: 'var(--color-primary)', zIndex: 10 }}>
+                  <thead style={{ position: 'sticky', top: 0, background: 'var(--table-head-bg)', zIndex: 10 }}>
                     <tr>
                       <th style={{ padding: '12px', textAlign: 'left', borderBottom: '1px solid var(--glass-border)' }}>Fecha</th>
                       <th style={{ padding: '12px', textAlign: 'left', borderBottom: '1px solid var(--glass-border)' }}>Origen</th>
@@ -444,7 +444,7 @@ export const ImportModal = ({ isOpen, onClose, onConfirmImport }: ImportModalPro
                       const isLibre = isFreeShift(shift);
                       const incomplete = !isLibre && (shift.startTime === '??:??' || shift.endTime === '??:??');
                       return (
-                        <tr key={index} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)', background: incomplete ? 'rgba(255, 107, 107, 0.08)' : 'transparent' }}>
+                        <tr key={index} style={{ borderBottom: '1px solid var(--border-soft)', background: incomplete ? 'var(--danger-row-bg)' : 'transparent' }}>
                           <td style={{ padding: '8px' }}>
                             <input type="text" className="modal-input" value={shift.date} onChange={(event) => handleUpdateShift(index, 'date', event.target.value)} style={{ padding: '6px', fontSize: '0.8rem' }} />
                           </td>
@@ -460,7 +460,7 @@ export const ImportModal = ({ isOpen, onClose, onConfirmImport }: ImportModalPro
                               className="modal-input"
                               value={isLibre && shift.startTime === '??:??' ? '' : shift.startTime}
                               onChange={(event) => handleUpdateShift(index, 'startTime', event.target.value)}
-                              style={{ padding: '6px', fontSize: '0.8rem', color: !isLibre && shift.startTime === '??:??' ? '#ff6b6b' : 'inherit' }}
+                              style={{ padding: '6px', fontSize: '0.8rem', color: !isLibre && shift.startTime === '??:??' ? 'var(--danger)' : 'inherit' }}
                             />
                           </td>
                           <td style={{ padding: '8px' }}>
@@ -469,11 +469,11 @@ export const ImportModal = ({ isOpen, onClose, onConfirmImport }: ImportModalPro
                               className="modal-input"
                               value={isLibre && shift.endTime === '??:??' ? '' : shift.endTime}
                               onChange={(event) => handleUpdateShift(index, 'endTime', event.target.value)}
-                              style={{ padding: '6px', fontSize: '0.8rem', color: !isLibre && shift.endTime === '??:??' ? '#ff6b6b' : 'inherit' }}
+                              style={{ padding: '6px', fontSize: '0.8rem', color: !isLibre && shift.endTime === '??:??' ? 'var(--danger)' : 'inherit' }}
                             />
                           </td>
                           <td style={{ padding: '8px', textAlign: 'center' }}>
-                            <button onClick={() => handleRemoveShift(index)} style={{ color: '#ff6b6b', padding: '6px' }}>
+                            <button onClick={() => handleRemoveShift(index)} style={{ color: 'var(--danger)', padding: '6px' }}>
                               <Trash2 size={16} />
                             </button>
                           </td>

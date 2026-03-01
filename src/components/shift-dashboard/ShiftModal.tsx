@@ -45,7 +45,7 @@ export const ShiftModal = ({ isOpen, editingShift, onClose, onSave, onDelete }: 
   return (
     <div className="modal-overlay">
       <div className="modal-content">
-        <button onClick={onClose} style={{ position: 'absolute', top: 'var(--space-md)', right: 'var(--space-md)', color: 'rgba(245, 245, 240, 0.4)', background: 'none', border: 'none', cursor: 'pointer' }}>
+        <button onClick={onClose} style={{ position: 'absolute', top: 'var(--space-md)', right: 'var(--space-md)', color: 'var(--text-subtle)', background: 'none', border: 'none', cursor: 'pointer' }}>
           <X size={24} />
         </button>
 
@@ -129,9 +129,9 @@ export const ShiftModal = ({ isOpen, editingShift, onClose, onSave, onDelete }: 
                 style={{ 
                   padding: 'var(--space-sm) var(--space-md)', 
                   color: 'var(--danger)', 
-                  border: '1px solid rgba(239, 68, 68, 0.3)', 
+                  border: '1px solid var(--danger-border)', 
                   borderRadius: '12px', 
-                  background: 'rgba(239, 68, 68, 0.1)', 
+                  background: 'var(--danger-bg)', 
                   cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',

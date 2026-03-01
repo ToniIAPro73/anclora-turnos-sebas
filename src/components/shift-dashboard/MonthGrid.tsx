@@ -35,7 +35,7 @@ function renderShiftBadge(shift: Shift, onEditShift: (id: string) => void) {
         borderLeft: `3px solid ${accentColor}`,
         padding: '2px 4px',
         borderRadius: '4px',
-        background: 'rgba(0,0,0,0.2)',
+        background: 'var(--shift-badge-bg)',
         cursor: 'pointer',
         whiteSpace: 'nowrap',
         overflow: 'hidden',
@@ -44,8 +44,8 @@ function renderShiftBadge(shift: Shift, onEditShift: (id: string) => void) {
         transition: 'background 0.15s',
         color: accentColor,
       }}
-      onMouseOver={(event) => { event.currentTarget.style.background = 'rgba(255,255,255,0.08)'; }}
-      onMouseOut={(event) => { event.currentTarget.style.background = 'rgba(0,0,0,0.2)'; }}
+      onMouseOver={(event) => { event.currentTarget.style.background = 'var(--shift-badge-hover-bg)'; }}
+      onMouseOut={(event) => { event.currentTarget.style.background = 'var(--shift-badge-bg)'; }}
     >
       {originPrefix} {shiftType}{hasTimes ? ` ${shift.startTime}–${shift.endTime}` : ''}
     </div>
@@ -90,7 +90,7 @@ export const MonthGrid = ({ year, month, shifts, onEditShift }: MonthGridProps) 
               fontWeight: '800',
               textTransform: 'uppercase',
               letterSpacing: '0.1em',
-              color: index >= 5 ? 'var(--color-gold)' : 'rgba(245,245,240,0.35)',
+              color: index >= 5 ? 'var(--color-gold)' : 'var(--text-subtle)',
               padding: '4px 0',
             }}
           >
@@ -116,22 +116,22 @@ export const MonthGrid = ({ year, month, shifts, onEditShift }: MonthGridProps) 
             <div
               key={day}
               style={{
-                background: isToday ? 'rgba(212, 175, 55, 0.1)' : 'var(--glass-bg)',
-                border: isToday ? '1px solid var(--color-gold)' : '1px solid rgba(255,255,255,0.06)',
+                background: isToday ? 'var(--day-today-bg)' : 'var(--glass-bg)',
+                border: isToday ? '1px solid var(--color-gold)' : '1px solid var(--border-soft)',
                 borderRadius: '14px',
                 padding: '7px 9px',
                 display: 'flex',
                 flexDirection: 'column',
                 overflow: 'hidden',
                 minHeight: 0,
-                boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.03)',
+                boxShadow: 'inset 0 1px 0 var(--inner-highlight)',
               }}
             >
               <div
                 style={{
                   fontSize: '0.75rem',
                   fontWeight: '800',
-                  color: isToday ? 'var(--color-gold)' : isWeekend ? 'rgba(245,245,240,0.5)' : 'var(--color-surface)',
+                  color: isToday ? 'var(--color-gold)' : isWeekend ? 'var(--text-muted)' : 'var(--text-primary)',
                   marginBottom: '4px',
                   flexShrink: 0,
                 }}

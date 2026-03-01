@@ -31,7 +31,7 @@ export const ShiftPreview: React.FC<ShiftPreviewProps> = ({ shifts, onRemove }) 
       <div style={{
         padding: '24px',
         textAlign: 'center',
-        color: 'rgba(245, 245, 240, 0.5)',
+        color: 'var(--text-subtle)',
         fontSize: '0.875rem',
       }}>
         No hay turnos para mostrar
@@ -59,10 +59,10 @@ export const ShiftPreview: React.FC<ShiftPreviewProps> = ({ shifts, onRemove }) 
               fontSize: '0.875rem',
               fontWeight: '700',
               textTransform: 'uppercase',
-              color: 'rgba(245, 245, 240, 0.7)',
+              color: 'var(--text-muted)',
               marginBottom: '12px',
               paddingBottom: '8px',
-              borderBottom: '1px solid rgba(245, 245, 240, 0.1)',
+              borderBottom: '1px solid var(--border-soft)',
             }}>
               {getMonthName(month)} {year}
             </h3>
@@ -90,7 +90,7 @@ export const ShiftPreview: React.FC<ShiftPreviewProps> = ({ shifts, onRemove }) 
                     {shift.shiftType}
                   </div>
                   {shift.startTime && shift.endTime && (
-                    <div style={{ marginTop: '4px', color: 'rgba(245, 245, 240, 0.7)' }}>
+                    <div style={{ marginTop: '4px', color: 'var(--text-muted)' }}>
                       {shift.startTime} - {shift.endTime}
                     </div>
                   )}

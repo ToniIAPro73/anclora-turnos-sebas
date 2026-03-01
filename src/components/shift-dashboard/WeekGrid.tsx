@@ -30,7 +30,7 @@ export const WeekGrid = ({ currentWeekStart, shifts, onEditShift }: WeekGridProp
             <div style={{ 
               marginBottom: 'var(--space-md)',
               paddingBottom: 'var(--space-xs)',
-              borderBottom: '1px solid rgba(255,255,255,0.08)',
+              borderBottom: '1px solid var(--border-soft)',
               textAlign: 'center',
               flexShrink: 0
             }}>
@@ -39,14 +39,14 @@ export const WeekGrid = ({ currentWeekStart, shifts, onEditShift }: WeekGridProp
                 fontWeight: '800', 
                 textTransform: 'uppercase', 
                 letterSpacing: '0.1em',
-                color: isToday ? 'var(--color-gold)' : 'rgba(245, 245, 240, 0.3)'
+                color: isToday ? 'var(--color-gold)' : 'var(--text-subtle)'
               }}>
                 {weekday}
               </div>
               <div style={{ 
                 fontSize: '1.25rem', 
                 fontWeight: '800',
-                color: isToday ? 'var(--color-gold)' : 'var(--color-surface)',
+                color: isToday ? 'var(--color-gold)' : 'var(--text-primary)',
                 marginTop: '2px'
               }}>
                 {daynum}
