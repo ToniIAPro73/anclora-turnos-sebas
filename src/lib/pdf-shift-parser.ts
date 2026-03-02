@@ -1,11 +1,9 @@
 import { getDocument, GlobalWorkerOptions } from 'pdfjs-dist/legacy/build/pdf.mjs';
-import { CalendarImportContext, ParsedCalendarShift } from './calendar-image-parser';
+import pdfWorkerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
+import { CalendarImportContext, ParsedCalendarShift } from './import-types';
 import { getDaysInMonth } from './week';
 
-GlobalWorkerOptions.workerSrc = new URL(
-  'pdfjs-dist/legacy/build/pdf.worker.min.mjs',
-  import.meta.url,
-).toString();
+GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
 
 interface PdfTextItem {
   text: string;
@@ -171,10 +169,19 @@ function findEmployeeRowItems(
       continue;
     }
 
-    const startIndex =
-      anchorIndex > 0 && pageItems[anchorIndex - 1].x < 80 && isEmployeeNameLabel(pageItems[anchorIndex - 1].text)
-        ? anchorIndex - 1
-        : anchorIndex;
+    let startIndex = anchorIndex;
+    for (let index = anchorIndex - 1; index >= 0; index -= 1) {
+      const candidate = pageItems[index];
+      if (candidate.x < 80 && isEmployeeNameLabel(candidate.text)) {
+        if (Math.abs(candidate.y - pageItems[anchorIndex].y) <= 12) {
+          startIndex = index;
+        }
+        break;
+      }
+      if (candidate.x < 80 && isEmployeeIdToken(candidate.text)) {
+        break;
+      }
+    }
 
     let endIndex = -1;
     for (let index = anchorIndex + 1; index < pageItems.length; index += 1) {
@@ -417,3 +424,6 @@ export async function parseEmployeeShiftsFromPdf(
       return left.startTime.localeCompare(right.startTime);
     });
 }
+
+
+

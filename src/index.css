@@ -123,6 +123,25 @@ button:hover {
   transform: scale(1.02);
 }
 
+.import-upload-zone,
+.import-upload-zone:hover,
+.import-upload-zone:focus,
+.import-upload-zone:active,
+.import-process-button,
+.import-process-button:hover,
+.import-process-button:focus,
+.import-process-button:active {
+  transform: none !important;
+}
+
+.import-upload-zone,
+.import-file-summary,
+.import-process-button {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
 .container {
   height: 100vh;
   display: flex;
@@ -472,3 +491,5 @@ select.modal-input option {
     white-space: normal;
   }
 }
+
+

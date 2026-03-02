@@ -8,7 +8,7 @@ import { MonthHeader } from './components/shift-dashboard/MonthHeader';
 import { MonthGrid } from './components/shift-dashboard/MonthGrid';
 import { ShiftModal } from './components/shift-dashboard/ShiftModal';
 import { ImportModal } from './components/shift-dashboard/ImportModal';
-import { CalendarImportContext } from './lib/calendar-image-parser';
+import { CalendarImportContext } from './lib/import-types';
 
 type ThemeMode = 'system' | 'light' | 'dark';
 
