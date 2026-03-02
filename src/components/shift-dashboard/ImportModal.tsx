@@ -252,7 +252,7 @@ export const ImportModal = ({ isOpen, onClose, onConfirmImport, initialContext }
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'minmax(360px, 1fr) minmax(0, 1fr)', gap: '24px', flex: 1, overflow: 'hidden' }}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', overflow: 'hidden', minWidth: 0 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', overflowY: 'auto', minWidth: 0, paddingRight: '4px' }}>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
               <label style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
                 <span>Nombre</span>
@@ -418,19 +418,28 @@ export const ImportModal = ({ isOpen, onClose, onConfirmImport, initialContext }
 
             <input ref={fileInputRef} type="file" hidden accept="image/*,.pdf,application/pdf" onChange={handleFileChange} />
 
-            <button
-              className="btn-gold"
-              disabled={!file || (!isPdfFile && !backendModel) || loading}
-              onClick={handleStartImport}
-              style={{ padding: '12px', opacity: !file || (!isPdfFile && !backendModel) || loading ? 0.5 : 1, width: '100%' }}
-            >
-              {loading ? (
-                <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
-                  <Loader2 size={18} style={{ animation: 'spin 1s linear infinite' }} />
-                  {isPdfFile ? 'Extrayendo PDF...' : `Analizando con ${modelLabel}...`}
-                </span>
-              ) : isPdfFile ? 'Importar PDF' : 'Escanear Imagen'}
-            </button>
+            <div style={{ position: 'sticky', bottom: 0, background: 'linear-gradient(180deg, rgba(7,15,46,0) 0%, var(--modal-bg) 24%)', paddingTop: '8px' }}>
+              <button
+                className="btn-gold"
+                disabled={!file || (!isPdfFile && !backendModel) || loading}
+                onClick={handleStartImport}
+                style={{
+                  padding: '14px 16px',
+                  opacity: !file || (!isPdfFile && !backendModel) || loading ? 0.5 : 1,
+                  width: '100%',
+                  minHeight: '52px',
+                  fontSize: '0.98rem',
+                  fontWeight: 800,
+                }}
+              >
+                {loading ? (
+                  <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                    <Loader2 size={18} style={{ animation: 'spin 1s linear infinite' }} />
+                    {isPdfFile ? 'Extrayendo PDF...' : `Analizando con ${modelLabel}...`}
+                  </span>
+                ) : isPdfFile ? 'Importar PDF' : 'Escanear Imagen'}
+              </button>
+            </div>
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', background: 'var(--panel-muted-bg)', borderRadius: '16px', padding: '16px', overflow: 'hidden', minWidth: 0 }}>

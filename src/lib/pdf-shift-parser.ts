@@ -144,6 +144,7 @@ function findEmployeeRowItems(
   const targetId = normalizeEmployeeId(selector.employeeId);
   const normalizedName = normalizeText(selector.employeeName);
   const nameTokens = normalizedName.split(' ').filter((token) => token.length >= 3);
+  const hasTargetId = targetId.length > 0;
 
   const pages = Array.from(new Set(items.map((item) => item.page))).sort((left, right) => left - right);
   for (const page of pages) {
@@ -158,8 +159,12 @@ function findEmployeeRowItems(
       const matchingTokens = nameTokens.filter((token) =>
         words.some((word) => word.startsWith(token) || token.startsWith(word)),
       );
-      return matchingTokens.length >= Math.min(2, nameTokens.length) || matchingTokens.length > 0;
+      return matchingTokens.length >= Math.min(2, nameTokens.length);
     });
+
+    if (hasTargetId && idIndex < 0) {
+      continue;
+    }
 
     const anchorIndex = idIndex >= 0 ? idIndex : nameIndex;
     if (anchorIndex < 0) {
