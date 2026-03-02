@@ -367,13 +367,27 @@ button:hover {
 }
 
 select.modal-input {
+  color-scheme: light;
   background-color: var(--glass-bg);
   color: var(--text-primary);
+  -webkit-text-fill-color: var(--text-primary);
 }
 
 select.modal-input option {
-  background: var(--color-surface-strong);
-  color: var(--text-primary);
+  background: #ffffff;
+  color: #17233f;
+}
+
+:root[data-theme='light'] select.modal-input {
+  color-scheme: light;
+  background-color: #ffffff;
+  color: #17233f;
+  -webkit-text-fill-color: #17233f;
+}
+
+:root[data-theme='light'] select.modal-input option {
+  background: #ffffff;
+  color: #17233f;
 }
 
 .btn-gold {
