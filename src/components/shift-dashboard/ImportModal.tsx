@@ -175,7 +175,7 @@ export const ImportModal = ({ isOpen, onClose, onConfirmImport, initialContext }
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'minmax(320px, 0.9fr) minmax(0, 1.1fr)', gap: '18px', flex: 1, overflow: 'hidden' }}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', minWidth: 0, overflow: 'hidden' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'flex-start', gap: '10px', minWidth: 0, overflow: 'hidden' }}>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
               <label style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
                 <span>Nombre</span>
@@ -224,7 +224,7 @@ export const ImportModal = ({ isOpen, onClose, onConfirmImport, initialContext }
                 cursor: 'pointer',
                 gap: '8px',
                 padding: '14px 14px',
-                minHeight: '120px',
+                minHeight: '108px',
                 background: 'transparent',
                 minWidth: 0,
                 overflow: 'hidden',
@@ -297,7 +297,7 @@ export const ImportModal = ({ isOpen, onClose, onConfirmImport, initialContext }
 
             <input ref={fileInputRef} type="file" hidden accept=".pdf,application/pdf" onChange={handleFileChange} />
 
-            <div style={{ minWidth: 0, width: '100%' }}>
+            <div style={{ minWidth: 0, width: '100%', flexShrink: 0 }}>
               <button
                 className="btn-gold import-process-button"
                 disabled={!file || loading}

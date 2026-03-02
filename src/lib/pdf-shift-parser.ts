@@ -1,6 +1,6 @@
 import { getDocument, GlobalWorkerOptions } from 'pdfjs-dist/legacy/build/pdf.mjs';
 import pdfWorkerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
-import { CalendarImportContext, ParsedCalendarShift } from './import-types';
+import { CalendarImportContext, ParsedCalendarShift, PdfDocumentType } from './import-types';
 import { getDaysInMonth } from './week';
 
 GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
@@ -46,8 +46,17 @@ function normalizeEmployeeId(value: string): string {
   return value.replace(/\D/g, '');
 }
 
+function normalizeTimeToken(value: string): string {
+  const match = value.trim().match(/^(\d{1,2}):(\d{2})$/);
+  if (!match) {
+    return value.trim();
+  }
+
+  return `${String(Number.parseInt(match[1], 10)).padStart(2, '0')}:${match[2]}`;
+}
+
 function isTimeToken(value: string): boolean {
-  return /^\d{2}:\d{2}$/.test(value);
+  return /^\d{1,2}:\d{2}$/.test(value.trim());
 }
 
 function isOffToken(value: string): boolean {
@@ -55,7 +64,44 @@ function isOffToken(value: string): boolean {
 }
 
 function isSeparatorToken(value: string): boolean {
-  return /^-+$/.test(value.trim());
+  return /^--+$/.test(value.trim());
+}
+
+function expandShiftTokens(value: string): string[] {
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return [];
+  }
+
+  if (isOffToken(trimmed)) {
+    return ['OFF'];
+  }
+
+  if (isSeparatorToken(trimmed)) {
+    return ['--'];
+  }
+
+  const segments = trimmed.split(/(--+)/).filter(Boolean);
+  const expanded: string[] = [];
+
+  for (const segment of segments) {
+    if (isSeparatorToken(segment)) {
+      expanded.push('--');
+      continue;
+    }
+
+    const times = Array.from(segment.matchAll(/\b(\d{1,2}:\d{2})\b/g), (match) => normalizeTimeToken(match[1]));
+    if (times.length > 0) {
+      expanded.push(...times);
+      continue;
+    }
+
+    if (isOffToken(segment)) {
+      expanded.push('OFF');
+    }
+  }
+
+  return expanded;
 }
 
 function isEmployeeIdToken(value: string): boolean {
@@ -135,7 +181,21 @@ function sortPdfItemsForReading(items: PdfTextItem[]): PdfTextItem[] {
   });
 }
 
-function findEmployeeRowItems(
+function detectPdfDocumentTypeFromItems(items: PdfTextItem[]): PdfDocumentType {
+  const hasDayHeaders = items.some((item) => /^\d{2}\/\d{2}$/.test(item.text));
+  const hasEmployeeIds = items.some((item) => isEmployeeIdToken(item.text));
+  if (hasDayHeaders && hasEmployeeIds) {
+    return 'TYPE_A';
+  }
+  return 'UNKNOWN';
+}
+
+export async function detectPdfDocumentType(file: File): Promise<PdfDocumentType> {
+  const items = await extractPdfTextItems(file);
+  return detectPdfDocumentTypeFromItems(items);
+}
+
+function findEmployeeRowItemsTypeA(
   items: PdfTextItem[],
   selector: EmployeeSelector,
 ): { rowItems: PdfTextItem[]; page: number } {
@@ -164,27 +224,26 @@ function findEmployeeRowItems(
       continue;
     }
 
-    const anchorIndex = idIndex >= 0 ? idIndex : nameIndex;
-    if (anchorIndex < 0) {
+    const markerIndexes = [nameIndex, idIndex].filter((index) => index >= 0);
+    if (markerIndexes.length === 0) {
       continue;
     }
 
-    let startIndex = anchorIndex;
-    for (let index = anchorIndex - 1; index >= 0; index -= 1) {
+    const topMarkerIndex = Math.min(...markerIndexes);
+    const bottomMarkerIndex = Math.max(...markerIndexes);
+
+    let startIndex = topMarkerIndex;
+    for (let index = topMarkerIndex - 1; index >= 0; index -= 1) {
       const candidate = pageItems[index];
-      if (candidate.x < 80 && isEmployeeNameLabel(candidate.text)) {
-        if (Math.abs(candidate.y - pageItems[anchorIndex].y) <= 12) {
-          startIndex = index;
-        }
+      if (candidate.x < 80 && (isEmployeeNameLabel(candidate.text) || isEmployeeIdToken(candidate.text))) {
+        startIndex = index + 1;
         break;
       }
-      if (candidate.x < 80 && isEmployeeIdToken(candidate.text)) {
-        break;
-      }
+      startIndex = index;
     }
 
-    let endIndex = -1;
-    for (let index = anchorIndex + 1; index < pageItems.length; index += 1) {
+    let endIndex = pageItems.length;
+    for (let index = bottomMarkerIndex + 1; index < pageItems.length; index += 1) {
       const candidate = pageItems[index];
       if (candidate.x < 80 && isEmployeeNameLabel(candidate.text)) {
         endIndex = index;
@@ -192,7 +251,7 @@ function findEmployeeRowItems(
       }
     }
 
-    const employeeSlice = pageItems.slice(startIndex, endIndex === -1 ? pageItems.length : endIndex);
+    const employeeSlice = pageItems.slice(startIndex, endIndex);
     const rowItems = employeeSlice.filter((item) => item.x > 80);
 
     if (rowItems.length > 0) {
@@ -203,7 +262,7 @@ function findEmployeeRowItems(
   throw new Error(`No se encontro la fila de ${selector.employeeName} (${selector.employeeId}) en el PDF.`);
 }
 
-function getDayColumnsForPage(items: PdfTextItem[], page: number, context: CalendarImportContext) {
+function getDayColumnsForPageTypeA(items: PdfTextItem[], page: number, context: CalendarImportContext) {
   return items
     .filter((item) => item.page === page)
     .map((item) => {
@@ -224,8 +283,7 @@ function getDayColumnsForPage(items: PdfTextItem[], page: number, context: Calen
     .sort((left, right) => left.x - right.x);
 }
 
-export async function detectPdfCalendarContext(file: File): Promise<CalendarImportContext> {
-  const items = await extractPdfTextItems(file);
+function detectTypeACalendarContext(items: PdfTextItem[]): CalendarImportContext {
   const header = items
     .map((item) => {
       const match = item.text.match(/^(\d{2})\/(\d{2})$/);
@@ -299,7 +357,7 @@ function mapColumnGroupsToDays(
 }
 
 function buildShiftEntriesForDay(date: string, tokens: string[]): ParsedCalendarShift[] {
-  const meaningful = tokens.map((token) => token.trim()).filter(Boolean);
+  const meaningful = tokens.flatMap((token) => expandShiftTokens(token)).map((token) => token.trim()).filter(Boolean);
   if (meaningful.length === 0) {
     return [];
   }
@@ -324,7 +382,7 @@ function buildShiftEntriesForDay(date: string, tokens: string[]): ParsedCalendar
   let currentSegment: string[] = [];
 
   for (const token of meaningful) {
-    if (isSeparatorToken(token)) {
+    if (token === '--') {
       if (currentSegment.length > 0) {
         segments.push(currentSegment);
         currentSegment = [];
@@ -356,7 +414,7 @@ function buildShiftEntriesForDay(date: string, tokens: string[]): ParsedCalendar
       continue;
     }
 
-    const times = segment.filter(isTimeToken);
+    const times = segment.filter(isTimeToken).map(normalizeTimeToken);
     for (let index = 0; index < times.length; index += 2) {
       const startTime = times[index] ?? '??:??';
       const endTime = times[index + 1] ?? '??:??';
@@ -378,20 +436,19 @@ function buildShiftEntriesForDay(date: string, tokens: string[]): ParsedCalendar
   return shifts;
 }
 
-export async function parseEmployeeShiftsFromPdf(
-  file: File,
+function parseTypeAPdfItems(
+  allItems: PdfTextItem[],
   context: CalendarImportContext,
   selector: EmployeeSelector,
-): Promise<ParsedCalendarShift[]> {
-  const allItems = await extractPdfTextItems(file);
-  const { rowItems, page } = findEmployeeRowItems(allItems, selector);
+): ParsedCalendarShift[] {
+  const { rowItems, page } = findEmployeeRowItemsTypeA(allItems, selector);
   const columnGroups = clusterByX(rowItems);
 
   if (columnGroups.length === 0) {
     throw new Error('No se pudieron detectar columnas de dias en el PDF.');
   }
 
-  const dayColumns = getDayColumnsForPage(allItems, page, context);
+  const dayColumns = getDayColumnsForPageTypeA(allItems, page, context);
   if (dayColumns.length === 0) {
     throw new Error('No se pudieron detectar los encabezados de dias en la pagina del PDF.');
   }
@@ -406,6 +463,7 @@ export async function parseEmployeeShiftsFromPdf(
     if (day < 1 || day > getDaysInMonth(context.year, context.month)) {
       continue;
     }
+
     const date = `${context.year}-${String(context.month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
     const tokens = items
       .sort((left, right) => right.y - left.y || left.x - right.x)
@@ -425,5 +483,35 @@ export async function parseEmployeeShiftsFromPdf(
     });
 }
 
+export async function detectPdfCalendarContext(file: File): Promise<CalendarImportContext> {
+  const items = await extractPdfTextItems(file);
+  const documentType = detectPdfDocumentTypeFromItems(items);
 
+  switch (documentType) {
+    case 'TYPE_A':
+      return detectTypeACalendarContext(items);
+    default:
+      return {
+        month: new Date().getMonth(),
+        year: deduceYearFromItems(items),
+      };
+  }
+}
 
+export async function parseEmployeeShiftsFromPdf(
+  file: File,
+  context: CalendarImportContext,
+  selector: EmployeeSelector,
+): Promise<ParsedCalendarShift[]> {
+  const allItems = await extractPdfTextItems(file);
+  const documentType = detectPdfDocumentTypeFromItems(allItems);
+
+  switch (documentType) {
+    case 'TYPE_A':
+      return parseTypeAPdfItems(allItems, context, selector);
+    case 'TYPE_B':
+      throw new Error('El procesamiento para PDFs de tipo B todavia no esta implementado.');
+    default:
+      throw new Error('No se ha podido identificar el formato del PDF para procesarlo correctamente.');
+  }
+}

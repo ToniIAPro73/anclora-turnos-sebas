@@ -3,6 +3,8 @@ export interface CalendarImportContext {
   year: number;
 }
 
+export type PdfDocumentType = 'TYPE_A' | 'TYPE_B' | 'UNKNOWN';
+
 export interface ParsedCalendarShift {
   date: string;
   startTime: string;
