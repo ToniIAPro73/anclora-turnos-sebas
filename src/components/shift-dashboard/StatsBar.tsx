@@ -61,7 +61,7 @@ function SummaryLine({
         <SectionToken label="Tot. anuales" />
         <TotalToken label="Año" value={yearStats.weeklyHours.toFixed(1)} suffix="h" />
         <TotalToken label="JT" value={formatJtValue(yearStats)} suffix="" className="type-jt" />
-        <TotalToken label="Extras" value={yearStats.hoursByType.Extras.toFixed(1)} suffix="h" className="type-extras" />
+        <TotalToken label="Libres" value={String(yearStats.freeDays)} suffix="d" className="type-libre" />
       </div>
     </div>
   );
