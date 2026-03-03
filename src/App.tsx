@@ -66,6 +66,11 @@ function timeRangesOverlap(left: Shift, right: Shift): boolean {
     candidates.some(([bStart, bEnd]) => aStart < bEnd && bStart < aEnd));
 }
 
+function canCoexistWithExistingFreeShift(existing: Shift, incoming: Shift): boolean {
+  return getShiftType(existing) === 'Libre'
+    && getShiftType(incoming) !== 'Libre';
+}
+
 function findShiftConflict(current: Shift[], incoming: Shift): string | null {
   const normalizedIncoming = normalizeShift(incoming);
   const incomingType = getShiftType(normalizedIncoming);
@@ -93,6 +98,9 @@ function findShiftConflict(current: Shift[], incoming: Shift): string | null {
   if (exclusiveTypes.has(incomingType)) {
     const incompatible = comparable.find((shift) => {
       const existingType = getShiftType(shift);
+      if (canCoexistWithExistingFreeShift(shift, normalizedIncoming)) {
+        return false;
+      }
       return exclusiveTypes.has(existingType) && existingType !== incomingType;
     });
 
