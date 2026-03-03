@@ -28,22 +28,9 @@ function renderShiftBadge(shift: Shift, onEditShift: (id: string) => void) {
   return (
     <div
       key={shift.id}
+      className="month-shift-badge"
       onClick={() => onEditShift(shift.id)}
-      style={{
-        fontSize: '0.58rem',
-        fontWeight: '600',
-        borderLeft: `3px solid ${accentColor}`,
-        padding: '2px 4px',
-        borderRadius: '4px',
-        background: 'var(--shift-badge-bg)',
-        cursor: 'pointer',
-        whiteSpace: 'nowrap',
-        overflow: 'hidden',
-        textOverflow: 'ellipsis',
-        lineHeight: 1.3,
-        transition: 'background 0.15s',
-        color: accentColor,
-      }}
+      style={{ borderLeft: `3px solid ${accentColor}`, color: accentColor }}
       onMouseOver={(event) => { event.currentTarget.style.background = 'var(--shift-badge-hover-bg)'; }}
       onMouseOut={(event) => { event.currentTarget.style.background = 'var(--shift-badge-bg)'; }}
     >
@@ -57,8 +44,8 @@ function renderOriginSection(
   onEditShift: (id: string) => void,
 ) {
   return (
-    <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', gap: '3px', padding: '2px 0', overflow: 'hidden' }}>
-        {shifts.map((shift) => renderShiftBadge(shift, onEditShift))}
+    <div className="month-origin-section">
+      {shifts.map((shift) => renderShiftBadge(shift, onEditShift))}
     </div>
   );
 }
@@ -79,73 +66,58 @@ export const MonthGrid = ({ year, month, shifts, onEditShift }: MonthGridProps) 
   };
 
   return (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', minHeight: 0 }}>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '6px', marginBottom: '6px', flexShrink: 0 }}>
-        {WEEKDAY_LABELS.map((label, index) => (
-          <div
-            key={label}
-            style={{
-              textAlign: 'center',
-              fontSize: '0.7rem',
-              fontWeight: '800',
-              textTransform: 'uppercase',
-              letterSpacing: '0.1em',
-              color: index >= 5 ? 'var(--color-gold)' : 'var(--text-subtle)',
-              padding: '4px 0',
-            }}
-          >
-            {label}
-          </div>
-        ))}
-      </div>
-
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))', gridTemplateRows: `repeat(${cells.length / 7}, minmax(0, 1fr))`, gap: '6px', flex: 1, minHeight: 0 }}>
-        {cells.map((day, index) => {
-          if (day === null) {
-            return <div key={`blank-${index}`} style={{ borderRadius: '10px' }} />;
-          }
-
-          const iso = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-          const dayShifts = getShiftsForDay(day);
-          const ownShifts = dayShifts.filter((shift) => getShiftOrigin(shift) === 'IMG');
-          const companyShifts = dayShifts.filter((shift) => getShiftOrigin(shift) === 'PDF');
-          const isToday = iso === todayISO;
-          const isWeekend = index % 7 >= 5;
-
-          return (
+    <div className="month-grid-shell">
+      <div className="month-grid-root">
+        <div className="month-weekdays-row">
+          {WEEKDAY_LABELS.map((label, index) => (
             <div
-              key={day}
-              style={{
-                background: isToday ? 'var(--day-today-bg)' : 'var(--glass-bg)',
-                border: isToday ? '1px solid var(--color-gold)' : '1px solid var(--border-soft)',
-                borderRadius: '14px',
-                padding: '7px 9px',
-                display: 'flex',
-                flexDirection: 'column',
-                overflow: 'hidden',
-                minHeight: 0,
-                boxShadow: 'inset 0 1px 0 var(--inner-highlight)',
-              }}
+              key={label}
+              className="month-weekday-cell"
+              style={{ color: index >= 5 ? 'var(--color-gold)' : 'var(--text-subtle)' }}
             >
+              {label}
+            </div>
+          ))}
+        </div>
+
+        <div className="month-grid-cells" style={{ gridTemplateRows: `repeat(${cells.length / 7}, minmax(0, 1fr))` }}>
+          {cells.map((day, index) => {
+            if (day === null) {
+              return <div key={`blank-${index}`} className="month-grid-blank" />;
+            }
+
+            const iso = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+            const dayShifts = getShiftsForDay(day);
+            const ownShifts = dayShifts.filter((shift) => getShiftOrigin(shift) === 'IMG');
+            const companyShifts = dayShifts.filter((shift) => getShiftOrigin(shift) === 'PDF');
+            const isToday = iso === todayISO;
+            const isWeekend = index % 7 >= 5;
+
+            return (
               <div
+                key={day}
+                className="month-day-cell"
                 style={{
-                  fontSize: '0.75rem',
-                  fontWeight: '800',
-                  color: isToday ? 'var(--color-gold)' : isWeekend ? 'var(--text-muted)' : 'var(--text-primary)',
-                  marginBottom: '4px',
-                  flexShrink: 0,
+                  background: isToday ? 'var(--day-today-bg)' : 'var(--glass-bg)',
+                  border: isToday ? '1px solid var(--color-gold)' : '1px solid var(--border-soft)',
+                  boxShadow: 'inset 0 1px 0 var(--inner-highlight)',
                 }}
               >
-                {day}
-              </div>
+                <div
+                  className="month-day-number"
+                  style={{ color: isToday ? 'var(--color-gold)' : isWeekend ? 'var(--text-muted)' : 'var(--text-primary)' }}
+                >
+                  {day}
+                </div>
 
-              <div style={{ flex: 1, minHeight: 0, display: 'grid', gridTemplateRows: '1fr 1fr', gap: '3px', overflow: 'hidden' }}>
-                {renderOriginSection(ownShifts, onEditShift)}
-                {renderOriginSection(companyShifts, onEditShift)}
+                <div className="month-day-sections">
+                  {renderOriginSection(ownShifts, onEditShift)}
+                  {renderOriginSection(companyShifts, onEditShift)}
+                </div>
               </div>
-            </div>
-          );
-        })}
+            );
+          })}
+        </div>
       </div>
     </div>
   );

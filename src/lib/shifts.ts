@@ -113,15 +113,27 @@ export const aggregateWeeklyStats = (shifts: Shift[], totalDays: number = 7): We
     JT: 0,
     Extras: 0,
   };
+  const jtDays = new Set<string>();
 
   for (const shift of shifts) {
     const type = getShiftType(shift);
     if (type === 'Regular' || type === 'JT' || type === 'Extras') {
       hoursByType[type] += enrichShift(shift).duration;
     }
+
+    if (type === 'JT') {
+      jtDays.add(shift.date);
+    }
   }
 
-  return { weeklyHours, freeDays, hoursByType };
+  return {
+    weeklyHours,
+    freeDays,
+    hoursByType,
+    daysByType: {
+      JT: jtDays.size,
+    },
+  };
 };
 
 export const filterShiftsByOrigin = (shifts: Shift[], origin: ShiftOrigin): Shift[] =>

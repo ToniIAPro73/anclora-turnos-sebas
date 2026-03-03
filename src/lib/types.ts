@@ -23,4 +23,7 @@ export interface WeeklyStats {
     JT: number;
     Extras: number;
   };
+  daysByType: {
+    JT: number;
+  };
 }

@@ -31,6 +31,10 @@ function TotalToken({
   );
 }
 
+function formatJtValue(stats: WeeklyStats): string {
+  return `${stats.hoursByType.JT.toFixed(1)}h / ${stats.daysByType.JT}d`;
+}
+
 function SummaryLine({
   title,
   monthStats,
@@ -46,7 +50,7 @@ function SummaryLine({
       <div className="totals-line-values">
         <TotalToken label="Mes" value={monthStats.weeklyHours.toFixed(1)} suffix="h" />
         <TotalToken label="Regular" value={monthStats.hoursByType.Regular.toFixed(1)} suffix="h" className="type-regular" />
-        <TotalToken label="JT" value={monthStats.hoursByType.JT.toFixed(1)} suffix="h" className="type-jt" />
+        <TotalToken label="JT" value={formatJtValue(monthStats)} suffix="" className="type-jt" />
         <TotalToken label="Libres" value={String(monthStats.freeDays)} suffix="d" className="type-libre" />
         <TotalToken label="Extras" value={monthStats.hoursByType.Extras.toFixed(1)} suffix="h" className="type-extras" />
         <TotalToken label="Año" value={yearStats.weeklyHours.toFixed(1)} suffix="h" />

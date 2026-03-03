@@ -21,40 +21,35 @@ export const MonthHeader = ({ year, month, onNavigate, onAddShift, onImport, the
 
   return (
     <div className="dashboard-header">
-      <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-lg)', minWidth: 0 }}>
+      <div className="dashboard-brand">
         <TurnosLogo />
-        <div style={{ minWidth: 0 }}>
-          <h1 style={{ fontSize: '1.35rem', fontWeight: '800', background: 'var(--gradient-accent)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', letterSpacing: '-0.02em', lineHeight: 1 }}>
+        <div className="dashboard-brand-copy">
+          <h1
+            className="dashboard-title"
+            style={{ background: 'var(--gradient-accent)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}
+          >
             Anclora GroundSync
           </h1>
-          <p style={{ fontSize: '0.75rem', color: 'var(--text-subtle)', marginTop: '2px' }}>by Anclora Group</p>
-          <p style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '4px' }}>
-            Sebastian Pozo Mendoza · ID 84881
-          </p>
+          <p className="dashboard-subtitle">by Anclora Group</p>
+          <p className="dashboard-identity">Sebastian Pozo Mendoza · ID 84881</p>
         </div>
       </div>
 
       <div className="month-toolbar">
         <div className="month-navigator">
-          <button
-            style={{ padding: '6px', color: 'var(--color-accent)', background: 'none', border: 'none', cursor: 'pointer' }}
-            onClick={() => onNavigate(-1)}
-          >
+          <button className="month-nav-button" onClick={() => onNavigate(-1)}>
             <ChevronLeft size={20} />
           </button>
-          <div style={{ padding: '0 var(--space-md)', fontWeight: '700', fontSize: '0.95rem', minWidth: '180px', textAlign: 'center' }}>
+          <div className="month-nav-label">
             {MONTH_NAMES[month]} {year}
           </div>
-          <button
-            style={{ padding: '6px', color: 'var(--color-accent)', background: 'none', border: 'none', cursor: 'pointer' }}
-            onClick={() => onNavigate(1)}
-          >
+          <button className="month-nav-button" onClick={() => onNavigate(1)}>
             <ChevronRight size={20} />
           </button>
         </div>
       </div>
 
-      <div style={{ display: 'flex', gap: 'var(--space-md)', flexShrink: 0 }}>
+      <div className="dashboard-actions">
         <button
           onClick={onToggleTheme}
           className="theme-toggle"
@@ -63,15 +58,11 @@ export const MonthHeader = ({ year, month, onNavigate, onAddShift, onImport, the
         >
           <span>{themeEmoji}</span>
         </button>
-        <button
-          onClick={onImport}
-          className="btn-outline"
-          style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 16px', fontSize: '0.875rem', fontWeight: 600 }}
-        >
+        <button onClick={onImport} className="btn-outline dashboard-action-button">
           Importar
         </button>
-        <button className="btn-gold" onClick={onAddShift} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 16px' }}>
-          <PlusCircle size={18} /> <span style={{ fontSize: '0.875rem' }}>Añadir</span>
+        <button className="btn-gold dashboard-action-button dashboard-add-button" onClick={onAddShift}>
+          <PlusCircle size={18} /> <span>Añadir</span>
         </button>
       </div>
     </div>
