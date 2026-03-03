@@ -66,11 +66,6 @@ function timeRangesOverlap(left: Shift, right: Shift): boolean {
     candidates.some(([bStart, bEnd]) => aStart < bEnd && bStart < aEnd));
 }
 
-function canCoexistWithExistingFreeShift(existing: Shift, incoming: Shift): boolean {
-  return getShiftType(existing) === 'Libre'
-    && getShiftType(incoming) !== 'Libre';
-}
-
 function findShiftConflict(current: Shift[], incoming: Shift): string | null {
   const normalizedIncoming = normalizeShift(incoming);
   const incomingType = getShiftType(normalizedIncoming);
@@ -81,31 +76,45 @@ function findShiftConflict(current: Shift[], incoming: Shift): string | null {
       shift.date === normalizedIncoming.date &&
       getShiftOrigin(shift) === incomingOrigin,
   );
-  const exclusiveTypes = new Set(['JT', 'Regular', 'Libre']);
 
-  const sameType = comparable.find((shift) => getShiftType(shift) === incomingType);
+  const sameType = comparable.find(
+    (shift) => getShiftType(shift) === incomingType && incomingType !== 'Extras',
+  );
   if (sameType) {
     return `Ya existe un turno de tipo ${incomingType} en ${normalizedIncoming.date}. Puedes modificar manualmente el turno existente.`;
   }
 
-  if (incomingType === 'Extras' && hasShiftTimes(normalizedIncoming)) {
-    const overlapping = comparable.find((shift) => hasShiftTimes(shift) && timeRangesOverlap(shift, normalizedIncoming));
-    if (overlapping) {
-      return `El turno Extras se solapa con el turno ${getShiftType(overlapping)} de ${normalizedIncoming.date}. Corrigelo antes de añadirlo.`;
-    }
-  }
-
-  if (exclusiveTypes.has(incomingType)) {
+  if (incomingType === 'Libre') {
     const incompatible = comparable.find((shift) => {
       const existingType = getShiftType(shift);
-      if (canCoexistWithExistingFreeShift(shift, normalizedIncoming)) {
-        return false;
-      }
-      return exclusiveTypes.has(existingType) && existingType !== incomingType;
+      return existingType === 'Regular' || existingType === 'JT' || existingType === 'Libre';
     });
 
     if (incompatible) {
-      return `No puedes combinar ${incomingType} con ${getShiftType(incompatible)} en ${normalizedIncoming.date}. JT, Regular y Libre son excluyentes.`;
+      return `No puedes añadir Libre si ya existe un turno ${getShiftType(incompatible)} en ${normalizedIncoming.date}.`;
+    }
+  }
+
+  if (incomingType === 'Regular' || incomingType === 'JT') {
+    const incompatible = comparable.find((shift) => getShiftType(shift) === 'Libre');
+
+    if (incompatible) {
+      return `No puedes combinar ${incomingType} con Libre en ${normalizedIncoming.date}.`;
+    }
+  }
+
+  if (incomingType === 'Extras' && hasShiftTimes(normalizedIncoming)) {
+    const overlapping = comparable.find((shift) => {
+      const existingType = getShiftType(shift);
+      if (existingType !== 'Regular' && existingType !== 'Extras') {
+        return false;
+      }
+
+      return hasShiftTimes(shift) && timeRangesOverlap(shift, normalizedIncoming);
+    });
+
+    if (overlapping) {
+      return `El turno Extras se solapa con el turno ${getShiftType(overlapping)} de ${normalizedIncoming.date}. Corrigelo antes de añadirlo.`;
     }
   }
 

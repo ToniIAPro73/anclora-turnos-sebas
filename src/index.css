@@ -319,48 +319,49 @@ button:hover {
 .month-day-sections {
   flex: 1;
   min-height: 0;
-  display: grid;
-  grid-template-rows: 1fr 1fr;
-  gap: 3px;
+  display: flex;
+  flex-direction: column;
   overflow: hidden;
 }
 
 .month-origin-section {
   flex: 1;
   min-height: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-  padding: 2px 0;
+  display: grid;
+  align-content: start;
+  gap: 4px;
+  padding: 2px 0 0;
   overflow-x: hidden;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  scrollbar-width: thin;
-  scrollbar-color: var(--glass-border) transparent;
+  overflow-y: hidden;
 }
 
-.month-origin-section::-webkit-scrollbar {
-  width: 4px;
+.month-origin-section[data-shift-count='1'] {
+  grid-template-rows: minmax(0, 1fr);
 }
 
-.month-origin-section::-webkit-scrollbar-thumb {
-  background: var(--glass-border);
-  border-radius: 999px;
+.month-origin-section[data-shift-count='2'] {
+  grid-template-rows: repeat(2, minmax(0, 1fr));
+}
+
+.month-origin-section[data-shift-count='3'] {
+  grid-template-rows: repeat(3, minmax(0, 1fr));
 }
 
 .month-shift-badge {
-  font-size: 0.58rem;
-  font-weight: 600;
-  padding: 2px 4px;
-  border-radius: 4px;
+  min-height: 0;
+  font-size: 0.56rem;
+  font-weight: 700;
+  padding: 3px 5px;
+  border-radius: 6px;
   background: var(--shift-badge-bg);
   cursor: pointer;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  line-height: 1.3;
+  line-height: 1.18;
   transition: background 0.15s, transform 0.16s ease, box-shadow 0.16s ease;
   width: 100%;
+  height: 100%;
   text-align: left;
   position: relative;
   z-index: 1;

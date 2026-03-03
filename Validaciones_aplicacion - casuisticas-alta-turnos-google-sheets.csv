@@ -1,0 +1,26 @@
+Caso,Turno ya existente,Origen existente,Nuevo turno,Origen nuevo,Resultado esperado,Explicacion sencilla
+1,Regular,PDF,Regular,MAN,Se permite,Los turnos PDF no bloquean la creacion de turnos manuales
+2,JT,PDF,JT,MAN,Se permite,Los turnos PDF no bloquean la creacion de turnos manuales
+3,Libre,PDF,Regular,MAN,Se permite,"Aunque ya exista un Libre de empresa, se puede anadir un turno manual"
+4,Regular,MAN,Regular,MAN,No se permite,No se pueden crear dos turnos manuales del mismo tipo en el mismo dia
+5,JT,MAN,JT,MAN,No se permite,No se pueden crear dos turnos manuales del mismo tipo en el mismo dia
+6,Libre,MAN,Libre,MAN,No se permite,No se pueden crear dos turnos manuales del mismo tipo en el mismo dia
+7,Regular,MAN,JT,MAN,Se permite,Regular y JT sí se pueden combinar en turnos manuales del mismo dia
+8,JT,MAN,Regular,MAN,Se permite,JT y Regular sí se pueden combinar en turnos manuales del mismo dia
+9,Regular,MAN,Libre,MAN,No se permite,"Si ya hay un Regular manual, no se puede crear un Libre manual"
+10,JT,MAN,Libre,MAN,No se permite,"Si ya hay un JT manual, no se puede crear un Libre manual"
+11,Libre,MAN,Regular,MAN,No se permite,"Si ya hay un Libre manual, no se puede anadir un turno manual que no sea Libre"
+12,Libre,MAN,JT,MAN,No se permite,"Si ya hay un Libre manual, no se puede anadir un turno manual que no sea Libre"
+13,Regular,MAN,Extras,MAN,Se permite si no se solapa,Extras puede convivir con otros turnos manuales si no coincide en horario
+14,Regular,MAN,Extras,MAN,No se permite si se solapa,"Si Extras coincide en horario con otro turno manual, se bloquea"
+15,JT,MAN,Extras,MAN,Se permite,Extras puede convivir con JT
+16,JT,MAN,Extras,MAN,Se permite ,"Si Extras coincide en horario con JT, se permite"
+17,Libre,MAN,Extras,MAN,Se permite,"Libre no aporta horario, asi que Extras puede crearse"
+18,Extras,MAN,Extras,MAN,Se permite si no se solapa,Puede haber mas de un Extras manual el mismo dia si no coinciden en horario
+19,Extras,MAN,Extras,MAN,No se permite si se solapa,No se pueden crear dos Extras manuales que se pisen en horario
+20,Libre + Regular,MAN,JT,MAN,No se permite,"Si ya existe un turno manual no Libre, manda la regla de incompatibilidad con ese turno"
+21,Libre + JT,MAN,Regular,MAN,No se permite,"Si ya existe un turno manual no Libre, manda la regla de incompatibilidad con ese turno"
+22,PDF de cualquier tipo + sin turnos MAN,PDF,Extras,MAN,Se permite,"Mientras no exista conflicto con turnos manuales, el alta manual se permite"
+23,PDF de cualquier tipo + Regular,PDF + MAN,JT,MAN,Se permite,"El PDF no bloquea, pero el Regular manual no bloquea el JT manual"
+24,PDF de cualquier tipo + Libre,PDF + MAN,Regular,MAN,Se permite,El Libre manual existente no bloquea un nuevo turno manual que no sea Libre
+25,PDF de cualquier tipo + Extras,PDF + MAN,Extras,MAN,Depende del horario,Solo se revisa si el nuevo Extras se solapa con los Extras manuales existentes

@@ -101,8 +101,11 @@ export const MonthGrid = ({ year, month, shifts, onEditShift }: MonthGridProps) 
     );
   };
 
-  const renderOriginSection = (dayShifts: Shift[]) => (
-    <div className="month-origin-section">
+  const renderShiftStack = (dayShifts: Shift[]) => (
+    <div
+      className="month-origin-section"
+      data-shift-count={dayShifts.length}
+    >
       {dayShifts.map((shift) => renderShiftBadge(shift))}
     </div>
   );
@@ -132,6 +135,7 @@ export const MonthGrid = ({ year, month, shifts, onEditShift }: MonthGridProps) 
             const dayShifts = getShiftsForDay(day);
             const ownShifts = dayShifts.filter((shift) => getShiftOrigin(shift) === 'MAN');
             const companyShifts = dayShifts.filter((shift) => getShiftOrigin(shift) === 'PDF');
+            const visibleShifts = [...ownShifts, ...companyShifts];
             const isToday = iso === todayISO;
             const isWeekend = index % 7 >= 5;
 
@@ -158,8 +162,7 @@ export const MonthGrid = ({ year, month, shifts, onEditShift }: MonthGridProps) 
                 </div>
 
                 <div className="month-day-sections">
-                  {renderOriginSection(ownShifts)}
-                  {renderOriginSection(companyShifts)}
+                  {renderShiftStack(visibleShifts)}
                 </div>
               </div>
             );
