@@ -34,7 +34,7 @@ function TotalToken({
 }
 
 function SectionToken({ label }: { label: string }) {
-  return <span className="totals-section-label">{label}</span>;
+  return <span className="totals-section-label totals-section-token">{label}</span>;
 }
 
 function formatTokenValue(hours: number, days: number): string {
@@ -59,52 +59,67 @@ function buildSummaryCells(monthStats: WeeklyStats, yearStats: WeeklyStats): Sta
   ];
 }
 
-function measureText(text: string, font: string): number {
+function measureText(text: string, font: string, letterSpacingPx: number = 0): number {
   if (typeof document === 'undefined') {
-    return text.length * 8;
+    return (text.length * 8) + Math.max(0, text.length - 1) * letterSpacingPx;
   }
 
   const canvas = document.createElement('canvas');
   const context = canvas.getContext('2d');
   if (!context) {
-    return text.length * 8;
+    return (text.length * 8) + Math.max(0, text.length - 1) * letterSpacingPx;
   }
 
   context.font = font;
-  return context.measureText(text).width;
+  return context.measureText(text).width + (Math.max(0, text.length - 1) * letterSpacingPx);
 }
 
-function buildGridTemplate(rows: StatsCell[][]): string {
+function getCellContentWidth(cell: StatsCell, sectionFont: string, tokenFont: string, sectionLetterSpacing: number, tokenLetterSpacing: number): number {
+  if (cell.kind === 'section') {
+    return measureText(cell.label, sectionFont, sectionLetterSpacing);
+  }
+
+  return measureText(`${cell.label} ${cell.value}`, tokenFont, tokenLetterSpacing);
+}
+
+function buildSharedColumnWidths(titles: string[], rows: StatsCell[][]): { titleColumnWidth: string; gridTemplateColumns: string } {
   const rootFontSize = typeof window === 'undefined'
     ? 16
     : Number.parseFloat(window.getComputedStyle(document.documentElement).fontSize || '16');
   const tokenFont = `700 ${0.62 * rootFontSize}px Inter, system-ui, sans-serif`;
   const sectionFont = `800 ${0.58 * rootFontSize}px Inter, system-ui, sans-serif`;
-  const minPadding = 10;
+  const titleFont = `800 ${0.72 * rootFontSize}px Inter, system-ui, sans-serif`;
+  const tokenLetterSpacing = 0.05 * (0.58 * rootFontSize);
+  const sectionLetterSpacing = 0.05 * (0.58 * rootFontSize);
+  const sidePadding = 10;
 
-  const widths = rows[0].map((_, index) => {
-    const widest = Math.max(...rows.map((row) => {
-      const cell = row[index];
-      if (cell.kind === 'section') {
-        return measureText(cell.label, sectionFont);
-      }
+  const titleContentWidth = Math.max(...titles.map((title) => measureText(title, titleFont)));
+  const columnContentWidths = rows[0].map((_, index) =>
+    Math.max(...rows.map((row) =>
+      getCellContentWidth(row[index], sectionFont, tokenFont, sectionLetterSpacing, tokenLetterSpacing),
+    )),
+  );
 
-      return measureText(`${cell.label} ${cell.value}`, tokenFont);
-    }));
+  const sharedFixedWidth = Math.ceil(
+    Math.max(
+      titleContentWidth + 5,
+      columnContentWidths[0] + sidePadding,
+      columnContentWidths[6] + sidePadding,
+    ),
+  );
 
-    return Math.ceil(widest + minPadding);
+  const contentWidths = columnContentWidths.map((width, index) => {
+    if (index === 0 || index === 6) {
+      return sharedFixedWidth;
+    }
+
+    return Math.ceil(width + sidePadding);
   });
 
-  return widths.map((width) => `${width}px`).join(' ');
-}
-
-function buildTitleColumnWidth(titles: string[]): string {
-  const rootFontSize = typeof window === 'undefined'
-    ? 16
-    : Number.parseFloat(window.getComputedStyle(document.documentElement).fontSize || '16');
-  const titleFont = `800 ${0.72 * rootFontSize}px Inter, system-ui, sans-serif`;
-  const widest = Math.max(...titles.map((title) => measureText(title, titleFont)));
-  return `${Math.ceil(widest + 5)}px`;
+  return {
+    titleColumnWidth: `${sharedFixedWidth}px`,
+    gridTemplateColumns: contentWidths.map((width) => `${width}px`).join(' '),
+  };
 }
 
 function SummaryLine({
@@ -139,13 +154,9 @@ export const StatsBar = ({ currentMonthShifts, daysInMonth, currentYearShifts, d
   const companyYearStats = useMemo(() => buildOriginStats(currentYearShifts, daysInYear, 'PDF'), [currentYearShifts, daysInYear]);
   const ownCells = useMemo(() => buildSummaryCells(ownMonthStats, ownYearStats), [ownMonthStats, ownYearStats]);
   const companyCells = useMemo(() => buildSummaryCells(companyMonthStats, companyYearStats), [companyMonthStats, companyYearStats]);
-  const gridTemplateColumns = useMemo(
-    () => buildGridTemplate([ownCells, companyCells]),
+  const { titleColumnWidth, gridTemplateColumns } = useMemo(
+    () => buildSharedColumnWidths(['Propios', 'Empresa'], [ownCells, companyCells]),
     [ownCells, companyCells],
-  );
-  const titleColumnWidth = useMemo(
-    () => buildTitleColumnWidth(['Propios', 'Empresa']),
-    [],
   );
 
   return (
