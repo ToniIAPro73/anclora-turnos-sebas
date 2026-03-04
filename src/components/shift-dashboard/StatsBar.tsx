@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { RefObject, useEffect, useMemo, useRef, useState } from 'react';
 import { Shift, ShiftOrigin, WeeklyStats } from '../../lib/types';
 import { aggregateWeeklyStats, filterShiftsByOrigin } from '../../lib/shifts';
 
@@ -82,7 +82,46 @@ function getCellContentWidth(cell: StatsCell, sectionFont: string, tokenFont: st
   return measureText(`${cell.label} ${cell.value}`, tokenFont, tokenLetterSpacing);
 }
 
-function buildSharedColumnWidths(titles: string[], rows: StatsCell[][]): { titleColumnWidth: string; gridTemplateColumns: string } {
+function distributeWidth(baseWidths: number[], targetWidth: number): number[] {
+  const currentWidth = baseWidths.reduce((sum, width) => sum + width, 0);
+  if (currentWidth >= targetWidth) {
+    return baseWidths.map((width) => Math.ceil(width));
+  }
+
+  const extraWidth = targetWidth - currentWidth;
+  const totalBaseWidth = baseWidths.reduce((sum, width) => sum + width, 0);
+
+  if (totalBaseWidth <= 0) {
+    const evenExtra = Math.floor(extraWidth / baseWidths.length);
+    let remainder = extraWidth - (evenExtra * baseWidths.length);
+
+    return baseWidths.map((width) => {
+      const nextWidth = width + evenExtra + (remainder > 0 ? 1 : 0);
+      remainder = Math.max(0, remainder - 1);
+      return Math.ceil(nextWidth);
+    });
+  }
+
+  const rawWidths = baseWidths.map((width) => width + ((width / totalBaseWidth) * extraWidth));
+  const roundedWidths = rawWidths.map((width) => Math.floor(width));
+  let remainder = targetWidth - roundedWidths.reduce((sum, width) => sum + width, 0);
+
+  const remainderOrder = rawWidths
+    .map((width, index) => ({ index, fraction: width - Math.floor(width) }))
+    .sort((left, right) => right.fraction - left.fraction);
+
+  for (let index = 0; index < remainder && index < remainderOrder.length; index += 1) {
+    roundedWidths[remainderOrder[index].index] += 1;
+  }
+
+  return roundedWidths;
+}
+
+function buildSharedColumnWidths(
+  titles: string[],
+  rows: StatsCell[][],
+  availableLineContentWidth: number | null,
+): { titleColumnWidth: string; gridTemplateColumns: string } {
   const rootFontSize = typeof window === 'undefined'
     ? 16
     : Number.parseFloat(window.getComputedStyle(document.documentElement).fontSize || '16');
@@ -109,17 +148,62 @@ function buildSharedColumnWidths(titles: string[], rows: StatsCell[][]): { title
   );
 
   const contentWidths = columnContentWidths.map((width, index) => {
-    if (index === 0 || index === 6) {
-      return sharedFixedWidth;
-    }
-
+    if (index === 0 || index === 6) return sharedFixedWidth;
     return Math.ceil(width + sidePadding);
   });
 
+  const monthVariableWidths = contentWidths.slice(1, 6);
+  const yearVariableWidths = contentWidths.slice(7, 12);
+  const monthMinWidth = sharedFixedWidth + monthVariableWidths.reduce((sum, width) => sum + width, 0);
+  const yearMinWidth = sharedFixedWidth + yearVariableWidths.reduce((sum, width) => sum + width, 0);
+  const minHalfWidth = Math.max(monthMinWidth, yearMinWidth);
+  const availableValuesWidth = availableLineContentWidth === null
+    ? null
+    : Math.max(0, availableLineContentWidth - sharedFixedWidth);
+  const targetHalfWidth = availableValuesWidth && availableValuesWidth >= (minHalfWidth * 2)
+    ? Math.floor(availableValuesWidth / 2)
+    : minHalfWidth;
+
+  const resolvedMonthVariableWidths = distributeWidth(monthVariableWidths, targetHalfWidth - sharedFixedWidth);
+  const resolvedYearVariableWidths = distributeWidth(yearVariableWidths, targetHalfWidth - sharedFixedWidth);
+
   return {
     titleColumnWidth: `${sharedFixedWidth}px`,
-    gridTemplateColumns: contentWidths.map((width) => `${width}px`).join(' '),
+    gridTemplateColumns: [
+      sharedFixedWidth,
+      ...resolvedMonthVariableWidths,
+      sharedFixedWidth,
+      ...resolvedYearVariableWidths,
+    ].map((width) => `${width}px`).join(' '),
   };
+}
+
+function useAvailableValuesWidth(lineRef: RefObject<HTMLDivElement>): number | null {
+  const [width, setWidth] = useState<number | null>(null);
+
+  useEffect(() => {
+    const element = lineRef.current;
+    if (!element || typeof ResizeObserver === 'undefined') {
+      return;
+    }
+
+    const updateWidth = () => {
+      const computedStyle = window.getComputedStyle(element);
+      const paddingLeft = Number.parseFloat(computedStyle.paddingLeft || '0');
+      const paddingRight = Number.parseFloat(computedStyle.paddingRight || '0');
+      const contentWidth = element.clientWidth - paddingLeft - paddingRight;
+      setWidth(Math.max(0, contentWidth));
+    };
+
+    updateWidth();
+
+    const observer = new ResizeObserver(() => updateWidth());
+    observer.observe(element);
+
+    return () => observer.disconnect();
+  }, [lineRef]);
+
+  return width;
 }
 
 function SummaryLine({
@@ -127,14 +211,16 @@ function SummaryLine({
   cells,
   gridTemplateColumns,
   titleColumnWidth,
+  lineRef,
 }: {
   title: string;
   cells: StatsCell[];
   gridTemplateColumns: string;
   titleColumnWidth: string;
+  lineRef?: RefObject<HTMLDivElement>;
 }) {
   return (
-    <div className="totals-line" style={{ gridTemplateColumns: `${titleColumnWidth} minmax(0, 1fr)` }}>
+    <div ref={lineRef} className="totals-line" style={{ gridTemplateColumns: `${titleColumnWidth} minmax(0, 1fr)` }}>
       <div className="totals-line-title">{title}</div>
       <div className="totals-line-values" style={{ gridTemplateColumns }}>
         {cells.map((cell, index) =>
@@ -148,20 +234,22 @@ function SummaryLine({
 }
 
 export const StatsBar = ({ currentMonthShifts, daysInMonth, currentYearShifts, daysInYear }: StatsBarProps) => {
+  const firstLineRef = useRef<HTMLDivElement>(null);
   const ownMonthStats = useMemo(() => buildOriginStats(currentMonthShifts, daysInMonth, 'MAN'), [currentMonthShifts, daysInMonth]);
   const ownYearStats = useMemo(() => buildOriginStats(currentYearShifts, daysInYear, 'MAN'), [currentYearShifts, daysInYear]);
   const companyMonthStats = useMemo(() => buildOriginStats(currentMonthShifts, daysInMonth, 'PDF'), [currentMonthShifts, daysInMonth]);
   const companyYearStats = useMemo(() => buildOriginStats(currentYearShifts, daysInYear, 'PDF'), [currentYearShifts, daysInYear]);
   const ownCells = useMemo(() => buildSummaryCells(ownMonthStats, ownYearStats), [ownMonthStats, ownYearStats]);
   const companyCells = useMemo(() => buildSummaryCells(companyMonthStats, companyYearStats), [companyMonthStats, companyYearStats]);
+  const availableValuesWidth = useAvailableValuesWidth(firstLineRef);
   const { titleColumnWidth, gridTemplateColumns } = useMemo(
-    () => buildSharedColumnWidths(['Propios', 'Empresa'], [ownCells, companyCells]),
-    [ownCells, companyCells],
+    () => buildSharedColumnWidths(['Propios', 'Empresa'], [ownCells, companyCells], availableValuesWidth),
+    [availableValuesWidth, ownCells, companyCells],
   );
 
   return (
     <div className="totals-ribbon">
-      <SummaryLine title="Propios" cells={ownCells} gridTemplateColumns={gridTemplateColumns} titleColumnWidth={titleColumnWidth} />
+      <SummaryLine title="Propios" cells={ownCells} gridTemplateColumns={gridTemplateColumns} titleColumnWidth={titleColumnWidth} lineRef={firstLineRef} />
       <SummaryLine title="Empresa" cells={companyCells} gridTemplateColumns={gridTemplateColumns} titleColumnWidth={titleColumnWidth} />
     </div>
   );

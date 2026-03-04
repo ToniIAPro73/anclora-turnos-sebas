@@ -399,6 +399,21 @@ button:hover {
   flex-direction: column;
   gap: 1px;
   flex-shrink: 0;
+  min-width: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-x: contain;
+  scrollbar-width: thin;
+  scrollbar-color: var(--glass-border) transparent;
+}
+
+.totals-ribbon::-webkit-scrollbar {
+  height: 8px;
+}
+
+.totals-ribbon::-webkit-scrollbar-thumb {
+  background: var(--glass-border);
+  border-radius: 999px;
 }
 
 .totals-line {
@@ -413,6 +428,9 @@ button:hover {
   background: var(--panel-muted-bg);
   backdrop-filter: var(--glass-blur);
   min-height: 0;
+  min-width: 100%;
+  width: max-content;
+  overflow: hidden;
 }
 
 .totals-line::after {
@@ -466,20 +484,13 @@ button:hover {
   justify-content: start;
   column-gap: 0;
   min-width: 0;
-  overflow-x: auto;
-  overflow-y: hidden;
+  overflow: hidden;
   padding-bottom: 2px;
   padding-right: 18px;
   font-size: 0.62rem;
   color: var(--text-muted);
   white-space: nowrap;
-  scrollbar-width: thin;
-  scrollbar-color: var(--glass-border) transparent;
   width: max-content;
-}
-
-.totals-line-values::-webkit-scrollbar {
-  display: none;
 }
 
 .totals-section-label {
