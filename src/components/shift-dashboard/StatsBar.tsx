@@ -81,7 +81,6 @@ function buildGridTemplate(rows: StatsCell[][]): string {
   const tokenFont = `700 ${0.62 * rootFontSize}px Inter, system-ui, sans-serif`;
   const sectionFont = `800 ${0.58 * rootFontSize}px Inter, system-ui, sans-serif`;
   const minPadding = 10;
-  const minColumnWidth = 56;
 
   const widths = rows[0].map((_, index) => {
     const widest = Math.max(...rows.map((row) => {
@@ -93,23 +92,34 @@ function buildGridTemplate(rows: StatsCell[][]): string {
       return measureText(`${cell.label} ${cell.value}`, tokenFont);
     }));
 
-    return Math.max(Math.ceil(widest + minPadding), minColumnWidth);
+    return Math.ceil(widest + minPadding);
   });
 
   return widths.map((width) => `${width}px`).join(' ');
+}
+
+function buildTitleColumnWidth(titles: string[]): string {
+  const rootFontSize = typeof window === 'undefined'
+    ? 16
+    : Number.parseFloat(window.getComputedStyle(document.documentElement).fontSize || '16');
+  const titleFont = `800 ${0.72 * rootFontSize}px Inter, system-ui, sans-serif`;
+  const widest = Math.max(...titles.map((title) => measureText(title, titleFont)));
+  return `${Math.ceil(widest + 5)}px`;
 }
 
 function SummaryLine({
   title,
   cells,
   gridTemplateColumns,
+  titleColumnWidth,
 }: {
   title: string;
   cells: StatsCell[];
   gridTemplateColumns: string;
+  titleColumnWidth: string;
 }) {
   return (
-    <div className="totals-line">
+    <div className="totals-line" style={{ gridTemplateColumns: `${titleColumnWidth} minmax(0, 1fr)` }}>
       <div className="totals-line-title">{title}</div>
       <div className="totals-line-values" style={{ gridTemplateColumns }}>
         {cells.map((cell, index) =>
@@ -133,11 +143,15 @@ export const StatsBar = ({ currentMonthShifts, daysInMonth, currentYearShifts, d
     () => buildGridTemplate([ownCells, companyCells]),
     [ownCells, companyCells],
   );
+  const titleColumnWidth = useMemo(
+    () => buildTitleColumnWidth(['Propios', 'Empresa']),
+    [],
+  );
 
   return (
     <div className="totals-ribbon">
-      <SummaryLine title="Propios" cells={ownCells} gridTemplateColumns={gridTemplateColumns} />
-      <SummaryLine title="Empresa" cells={companyCells} gridTemplateColumns={gridTemplateColumns} />
+      <SummaryLine title="Propios" cells={ownCells} gridTemplateColumns={gridTemplateColumns} titleColumnWidth={titleColumnWidth} />
+      <SummaryLine title="Empresa" cells={companyCells} gridTemplateColumns={gridTemplateColumns} titleColumnWidth={titleColumnWidth} />
     </div>
   );
 };

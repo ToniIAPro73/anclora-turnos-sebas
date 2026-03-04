@@ -405,7 +405,7 @@ button:hover {
   position: relative;
   display: grid;
   grid-template-columns: 72px minmax(0, 1fr);
-  gap: 6px;
+  gap: 0;
   align-items: center;
   padding: 3px 8px;
   border-radius: 10px;
@@ -435,12 +435,29 @@ button:hover {
     display: block;
   }
 }
-.totals-line-title {
+.totals-line-title {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  min-width: 0;
+  padding-right: 0;
   font-size: 0.72rem;
   font-weight: 800;
   letter-spacing: -0.02em;
   color: var(--color-surface);
   color: var(--text-primary);
+  white-space: nowrap;
+}
+
+.totals-line-title::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 1px;
+  background: var(--border-soft);
 }
 
 .totals-line-values {
@@ -466,9 +483,10 @@ button:hover {
 }
 
 .totals-section-label {
-  display: block;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   min-width: 0;
-  padding: 0 8px;
   font-size: 0.58rem;
   font-weight: 800;
   letter-spacing: 0.05em;
@@ -480,9 +498,10 @@ button:hover {
 }
 
 .totals-token {
-  display: block;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   min-width: 0;
-  padding: 0 8px;
   color: var(--text-primary);
   text-align: center;
   border-right: 1px solid var(--border-soft);
@@ -844,7 +863,6 @@ button:hover {
 
   .totals-line {
     grid-template-columns: 62px minmax(0, 1fr);
-    gap: 8px;
     padding: 5px 6px;
   }
 
