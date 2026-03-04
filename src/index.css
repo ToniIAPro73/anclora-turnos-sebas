@@ -470,6 +470,7 @@ button:hover {
 .totals-section-label {
   display: block;
   min-width: 0;
+  padding: 0 8px;
   font-size: 0.58rem;
   font-weight: 800;
   letter-spacing: 0.05em;
@@ -477,13 +478,20 @@ button:hover {
   color: var(--text-subtle);
   white-space: nowrap;
   text-align: center;
+  border-right: 1px solid var(--border-soft);
 }
 
 .totals-token {
   display: block;
   min-width: 0;
+  padding: 0 8px;
   color: var(--text-primary);
   text-align: center;
+  border-right: 1px solid var(--border-soft);
+}
+
+.totals-line-values > :last-child {
+  border-right: none;
 }
 
 .totals-token strong {
