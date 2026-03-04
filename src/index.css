@@ -444,9 +444,7 @@ button:hover {
 }
 
 .totals-line-values {
-  --totals-col-width: 132px;
   display: grid;
-  grid-template-columns: repeat(12, var(--totals-col-width));
   align-items: center;
   justify-content: start;
   column-gap: 0;
@@ -786,7 +784,6 @@ button:hover {
 
 @media (max-width: 1280px) {
   .totals-line-values {
-    --totals-col-width: 122px;
     font-size: 0.58rem;
   }
 }
@@ -856,7 +853,6 @@ button:hover {
   }
 
   .totals-line-values {
-    --totals-col-width: 116px;
     font-size: 0.58rem;
   }
 
@@ -960,7 +956,6 @@ button:hover {
   }
 
   .totals-line-values {
-    --totals-col-width: 110px;
     font-size: 0.56rem;
   }
 
