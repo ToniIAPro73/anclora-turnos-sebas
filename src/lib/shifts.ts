@@ -196,7 +196,7 @@ export const aggregateWeeklyStats = (shifts: Shift[], totalDays: number = 7): We
       Regular: daysByType.Regular.size,
       JT: daysByType.JT.size,
       Extras: daysByType.Extras.size,
-      Libre: freeDays,
+      Libre: daysByType.Libre.size,
     },
   };
 };
