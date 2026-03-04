@@ -444,9 +444,16 @@ button:hover {
 }
 
 .totals-line-values {
-  display: flex;
+  --totals-section-col: 56px;
+  --totals-token-col: 126px;
+  display: grid;
+  grid-template-columns:
+    var(--totals-section-col)
+    repeat(5, var(--totals-token-col))
+    var(--totals-section-col)
+    repeat(5, var(--totals-token-col));
   align-items: center;
-  gap: 10px;
+  column-gap: 8px;
   min-width: 0;
   overflow-x: auto;
   overflow-y: hidden;
@@ -457,6 +464,7 @@ button:hover {
   white-space: nowrap;
   scrollbar-width: thin;
   scrollbar-color: var(--glass-border) transparent;
+  width: max-content;
 }
 
 .totals-line-values::-webkit-scrollbar {
@@ -464,20 +472,20 @@ button:hover {
 }
 
 .totals-section-label {
-  flex: 0 0 auto;
-  min-width: 64px;
+  min-width: 0;
   font-size: 0.58rem;
   font-weight: 800;
   letter-spacing: 0.05em;
   text-transform: uppercase;
   color: var(--text-subtle);
   white-space: nowrap;
+  text-align: left;
 }
 
 .totals-token {
-  flex: 0 0 auto;
-  min-width: 108px;
+  min-width: 0;
   color: var(--text-primary);
+  text-align: left;
 }
 
 .totals-token strong {
@@ -772,16 +780,9 @@ button:hover {
 
 @media (max-width: 1280px) {
   .totals-line-values {
-    gap: 8px;
+    --totals-section-col: 52px;
+    --totals-token-col: 118px;
     font-size: 0.58rem;
-  }
-
-  .totals-section-label {
-    min-width: 58px;
-  }
-
-  .totals-token {
-    min-width: 100px;
   }
 }
 
@@ -850,16 +851,9 @@ button:hover {
   }
 
   .totals-line-values {
-    gap: 8px;
+    --totals-section-col: 50px;
+    --totals-token-col: 112px;
     font-size: 0.58rem;
-  }
-
-  .totals-section-label {
-    min-width: 56px;
-  }
-
-  .totals-token {
-    min-width: 96px;
   }
 
   .month-grid-root {
@@ -962,16 +956,9 @@ button:hover {
   }
 
   .totals-line-values {
-    gap: 7px;
+    --totals-section-col: 48px;
+    --totals-token-col: 108px;
     font-size: 0.56rem;
-  }
-
-  .totals-section-label {
-    min-width: 52px;
-  }
-
-  .totals-token {
-    min-width: 92px;
   }
 
   .month-grid-root {
