@@ -704,7 +704,7 @@ button:hover {
   padding: 6px;
   border: 1px solid var(--glass-border);
   border-radius: 12px;
-  background: rgba(24, 35, 79, 0.97);
+  background: #1a234f;
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   box-shadow: 0 18px 38px rgba(3, 8, 24, 0.5);
