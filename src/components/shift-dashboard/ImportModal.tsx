@@ -282,10 +282,10 @@ export const ImportModal = ({ isOpen, onClose, onConfirmImport, initialContext }
           <h2 style={{ fontSize: '1.5rem', fontWeight: '800', margin: 0 }}>Importador PDF</h2>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
             <button
-              className="btn-outline"
+              className="btn-outline modal-reset-button"
               onClick={resetImportState}
               disabled={!canStartFreshImport}
-              style={{ padding: '8px 12px', fontWeight: 700, opacity: canStartFreshImport ? 1 : 0.45, cursor: canStartFreshImport ? 'pointer' : 'not-allowed' }}
+              style={{ padding: '8px 12px', fontWeight: 700 }}
             >
               Nueva Importación
             </button>

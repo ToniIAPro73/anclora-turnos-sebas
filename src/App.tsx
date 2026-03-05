@@ -8,6 +8,7 @@ import { MonthHeader } from './components/shift-dashboard/MonthHeader';
 import { MonthGrid } from './components/shift-dashboard/MonthGrid';
 import { ShiftModal } from './components/shift-dashboard/ShiftModal';
 import { ImportModal } from './components/shift-dashboard/ImportModal';
+import { JTCounterModal } from './components/shift-dashboard/JTCounterModal';
 import { CalendarImportContext } from './lib/import-types';
 
 type ThemeMode = 'system' | 'light' | 'dark';
@@ -156,6 +157,7 @@ function App() {
   const [currentMonth, setCurrentMonth] = useState(now.getMonth());
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isImportOpen, setIsImportOpen] = useState(false);
+  const [isJTCounterOpen, setIsJTCounterOpen] = useState(false);
   const [editingShiftId, setEditingShiftId] = useState<string | null>(null);
   const [importConflictState, setImportConflictState] = useState<ImportConflictState | null>(null);
 
@@ -336,6 +338,7 @@ function App() {
         onNavigate={handleNavigate}
         themeMode={themeMode}
         onToggleTheme={handleToggleTheme}
+        onOpenJTCounter={() => setIsJTCounterOpen(true)}
         onAddShift={() => {
           setEditingShiftId(null);
           setIsModalOpen(true);
@@ -374,6 +377,12 @@ function App() {
         onClose={() => setIsImportOpen(false)}
         onConfirmImport={handleConfirmImport}
         initialContext={{ month: currentMonth, year: currentYear }}
+      />
+
+      <JTCounterModal
+        isOpen={isJTCounterOpen}
+        onClose={() => setIsJTCounterOpen(false)}
+        shifts={shifts}
       />
 
       {importConflictState && (

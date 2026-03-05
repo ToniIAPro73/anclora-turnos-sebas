@@ -12,11 +12,12 @@ interface MonthHeaderProps {
   onNavigate: (delta: number) => void;
   onAddShift: () => void;
   onImport: () => void;
+  onOpenJTCounter: () => void;
   themeMode: 'system' | 'light' | 'dark';
   onToggleTheme: () => void;
 }
 
-export const MonthHeader = ({ year, month, onNavigate, onAddShift, onImport, themeMode, onToggleTheme }: MonthHeaderProps) => {
+export const MonthHeader = ({ year, month, onNavigate, onAddShift, onImport, onOpenJTCounter, themeMode, onToggleTheme }: MonthHeaderProps) => {
   const themeEmoji = themeMode === 'light' ? '☀️' : themeMode === 'dark' ? '🌙' : '🖥️';
 
   return (
@@ -60,6 +61,9 @@ export const MonthHeader = ({ year, month, onNavigate, onAddShift, onImport, the
         </button>
         <button onClick={onImport} className="btn-outline dashboard-action-button">
           Importar
+        </button>
+        <button onClick={onOpenJTCounter} className="btn-outline dashboard-action-button">
+          JT
         </button>
         <button className="btn-gold dashboard-action-button dashboard-add-button" onClick={onAddShift}>
           <PlusCircle size={18} /> <span>Añadir</span>

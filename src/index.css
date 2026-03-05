@@ -649,6 +649,28 @@ button:hover {
   font-size: 14px;
 }
 
+.modal-input::placeholder {
+  color: var(--text-subtle);
+  opacity: 1;
+}
+
+.modal-input[type='date']::-webkit-calendar-picker-indicator {
+  opacity: 0.82;
+  cursor: pointer;
+}
+
+:root:not([data-theme='light']) .modal-input[type='date'] {
+  color-scheme: dark;
+}
+
+:root:not([data-theme='light']) .modal-input[type='date']::-webkit-calendar-picker-indicator {
+  filter: invert(1) brightness(1.18);
+}
+
+:root[data-theme='light'] .modal-input[type='date'] {
+  color-scheme: light;
+}
+
 .modal-select-trigger {
   width: 100%;
   min-height: 44px;
@@ -746,6 +768,33 @@ button:hover {
   color: var(--color-accent);
   border-radius: 10px;
   background: transparent;
+}
+
+.modal-reset-button {
+  background: var(--panel-muted-bg);
+  border-color: color-mix(in srgb, var(--color-accent) 72%, transparent);
+  color: var(--text-primary);
+  transition: border-color 160ms ease, background-color 160ms ease, color 160ms ease, box-shadow 160ms ease;
+}
+
+.modal-reset-button:hover:not(:disabled) {
+  transform: none !important;
+  border-color: var(--color-accent);
+  background: color-mix(in srgb, var(--panel-muted-bg) 80%, var(--color-accent) 20%);
+}
+
+.modal-reset-button:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--color-accent) 78%, white 22%);
+  outline-offset: 2px;
+}
+
+.modal-reset-button:disabled {
+  opacity: 0.46;
+  cursor: not-allowed;
+  color: var(--text-subtle);
+  border-color: var(--glass-border);
+  background: color-mix(in srgb, var(--panel-muted-bg) 92%, transparent);
+  box-shadow: none;
 }
 
 .theme-toggle {
@@ -1035,6 +1084,17 @@ button:hover {
 
   .import-modal-right {
     min-height: 360px;
+  }
+
+  .jt-counter-modal-content {
+    width: 100% !important;
+    max-width: none !important;
+    min-height: auto !important;
+    padding: 16px;
+  }
+
+  .jt-counter-modal-grid {
+    grid-template-columns: 1fr !important;
   }
 }
 
