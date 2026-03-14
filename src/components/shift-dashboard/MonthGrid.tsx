@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Shift } from '../../lib/types';
 import { getDaysInMonth, getFirstWeekdayOfMonth, toISODate } from '../../lib/week';
 import { getShiftOrigin, getShiftType, hasShiftTimes } from '../../lib/shifts';
+import { Plus } from 'lucide-react';
 
 interface MonthGridProps {
   year: number;
@@ -143,20 +144,15 @@ export const MonthGrid = ({ year, month, shifts, onEditShift, onCreateShift }: M
             const visibleShifts = [...ownShifts, ...companyShifts];
             const isToday = iso === todayISO;
             const isWeekend = index % 7 >= 5;
-            const canCreateShift = visibleShifts.length === 0;
+            const hasVacationShift = visibleShifts.some((shift) => getShiftType(shift) === 'Vacaciones');
 
             return (
               <div
                 key={day}
-                className={canCreateShift ? 'month-day-cell is-creatable' : 'month-day-cell'}
+                className={hasVacationShift ? 'month-day-cell has-add-disabled' : 'month-day-cell'}
                 onClick={() => {
                   if (expandedShiftId) {
                     setExpandedShiftId(null);
-                    return;
-                  }
-
-                  if (canCreateShift) {
-                    onCreateShift(iso);
                   }
                 }}
                 style={{
@@ -165,11 +161,30 @@ export const MonthGrid = ({ year, month, shifts, onEditShift, onCreateShift }: M
                   boxShadow: 'inset 0 1px 0 var(--inner-highlight)',
                 }}
               >
-                <div
-                  className="month-day-number"
-                  style={{ color: isToday ? 'var(--color-gold)' : isWeekend ? 'var(--text-muted)' : 'var(--text-primary)' }}
-                >
-                  {day}
+                <div className="month-day-header">
+                  <div
+                    className="month-day-number"
+                    style={{ color: isToday ? 'var(--color-gold)' : isWeekend ? 'var(--text-muted)' : 'var(--text-primary)' }}
+                  >
+                    {day}
+                  </div>
+                  <button
+                    type="button"
+                    className="month-day-add-button"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      setExpandedShiftId(null);
+
+                      if (!hasVacationShift) {
+                        onCreateShift(iso);
+                      }
+                    }}
+                    disabled={hasVacationShift}
+                    aria-label={hasVacationShift ? `No se pueden añadir turnos el ${iso} porque hay vacaciones` : `Añadir turno el ${iso}`}
+                    title={hasVacationShift ? 'No se pueden añadir más turnos si hay Vacaciones' : 'Añadir turno'}
+                  >
+                    <Plus size={14} strokeWidth={2.2} />
+                  </button>
                 </div>
 
                 <div className="month-day-sections">

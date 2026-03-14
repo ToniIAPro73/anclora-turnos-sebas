@@ -78,6 +78,11 @@ function findShiftConflict(current: Shift[], incoming: Shift): string | null {
       getShiftOrigin(shift) === incomingOrigin,
   );
 
+  const existingVacation = comparable.find((shift) => getShiftType(shift) === 'Vacaciones');
+  if (existingVacation && incomingType !== 'Vacaciones') {
+    return `No puedes añadir un turno ${incomingType} en ${normalizedIncoming.date} porque ya existe un turno de Vacaciones.`;
+  }
+
   const sameType = comparable.find(
     (shift) => getShiftType(shift) === incomingType && incomingType !== 'Extras',
   );
